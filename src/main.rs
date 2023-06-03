@@ -2,58 +2,13 @@ use std::f32::consts::PI;
 use rand::rngs::ThreadRng;
 use serde_json;
 
-pub mod types_2d; pub mod dists;
+mod dists;
+mod types_2d;
+mod smc;
+
 use dists::Distribution;
+use smc::ParticleFilterState;
 
-
-struct ParticleFilterState {
-    points: Vec<Vec<types_2d::Point>>,
-    weights: Vec<f32>
-}
-
-impl ParticleFilterState {
-
-    fn new(rng: &mut ThreadRng, num_samples: u32, b: &types_2d::Bounds) -> ParticleFilterState {
-        let mut points = vec![];
-        let mut weights = vec![];
-        for _ in 0..num_samples {
-            let point = dists::uniform_2d.random(rng, b);
-            let weight = dists::uniform_2d.logpdf(b, &point);
-            points.push(point);
-            weights.push(weight);
-        }
-        ParticleFilterState { points: vec![points], weights: weights }
-    }
-
-    fn step(
-        &mut self,
-        rng: &mut ThreadRng,
-        new_t: usize, 
-        new_obs: &types_2d::Point
-    ) {
-        for i in 1..self.weights.len() {
-            let old_points = &self.points[new_t-1];
-            let old_weights = self.weights[i];
-            let x_std = 10.;
-            let y_std = 10.;
-            let dx = dists::normal.random(rng, &(0.,x_std));
-            let dy = dists::normal.random(rng, &(0.,y_std));
-            let proposed_p = types_2d::Point { x: old_points[0].x + dx, y: old_points[0].y + dy };
-            let inc = dists::normal.logpdf(&(proposed_p.x as f32, x_std), &(new_obs.x as f32))
-                    + dists::normal.logpdf(&(proposed_p.y as f32, y_std), &(new_obs.y as f32));
-            // *pf_state.points[new_t] = 
-        }
-    }
-
-    fn maybe_resample(&mut self, ess_threshold: f64) -> bool {
-        false
-    }
-
-    fn sampled_unweighted_points(&mut self, rng: &mut ThreadRng, num_samples: u32) {
-    }
-
-}
- 
 
 // Functions
 
@@ -124,7 +79,7 @@ fn main() {
     // that account for a "normal" likelihood. Note the normal distribution is a
     // surprisingly robust and general-purpose prior, thanks to central limit theorem
 
-    // todo: then we visualize how our updated guess characterizes the initial uncertainty
+    // todo: then we visualize how our updated guesses characterize the initial uncertainty
     // resampled_initial_particles.json
 
     for (t, obs) in observations.iter().enumerate() {
