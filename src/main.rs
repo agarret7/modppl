@@ -1,3 +1,4 @@
+use std::rc::Rc;
 use std::f32::consts::PI;
 use std::fs::{write, create_dir_all};
 use rand::rngs::ThreadRng;
@@ -6,10 +7,10 @@ use serde_json;
 use gen_reflex::types_2d;
 use gen_reflex::smc;
 
-use smc::ParticleFilterState;
+use smc::ParticleFamily;
 
 
-fn simulate_loop(bounds: &types_2d::Bounds, timesteps: i32) -> Vec<types_2d::Point> {
+fn simulate_loop(bounds: &types_2d::Bounds, timesteps: i32) -> Vec<Rc<types_2d::Point>> {
     let xrange = (bounds.xmax - bounds.xmin) as f32;
     let yrange = (bounds.ymax - bounds.ymin) as f32;
     let center = types_2d::Point {
@@ -25,7 +26,7 @@ fn simulate_loop(bounds: &types_2d::Bounds, timesteps: i32) -> Vec<types_2d::Poi
             x: center.x + radius*t.cos() + radius/8.*u.sin(),
             y: center.y + radius*t.sin() + radius/8.*u.cos()
         };
-        observations.push(obs);
+        observations.push(Rc::new(obs));
     }
     observations
 }
@@ -53,24 +54,27 @@ fn main() -> std::io::Result<()> {
     let mut rng = ThreadRng::default();
 
     // we initialize blind guesses of where the true object might be, represented as particle "guesses"
-    let mut pf_state = ParticleFilterState::new(&mut rng, num_samples, &bounds, &observations[0]);
+    let mut pf_state = ParticleFamily::new(&mut rng, num_samples, bounds, Rc::clone(&observations[0]));
 
     // then we visualize how our initial particles compare to the initial observation
-    let data = serde_json::to_string(&pf_state.traces)?;
-    write("data/initial_particles.json", data)?;
+    let data = pf_state.traces.iter().map(|t| t.get_choices().0).collect::<Vec<&Vec<types_2d::Point>>>();
+    let json = serde_json::to_string(&data)?;
+    write("data/initial_particles.json", json)?;
 
     // we copy the most promising particles according to importance weights
     // that account for a "normal" likelihood. 
     pf_state.sample_unweighted_traces(&mut rng, num_samples);
 
     // then we visualize how our updated guesses characterize the initial uncertainty
-    let data = serde_json::to_string(&pf_state.traces)?;
-    write("data/resampled_initial_particles.json", data)?;
+    let data = pf_state.traces.iter().map(|t| t.get_choices().0).collect::<Vec<&Vec<types_2d::Point>>>();
+    let json = serde_json::to_string(&data)?;
+    write("data/resampled_initial_particles.json", json)?;
 
     // for (t, obs) in observations.iter().enumerate() {
     //     pf_state.step(&mut rng, t+1,&obs);
-    //     // todo: save all proposed particle extensions
-    //     // todo: save the accepted extensions and historical traces
+    //     todo: perform one rejuvenation step of mh
+    //     todo: save all proposed particle extensions (regardless of acceptance)
+    //     todo: save the actual extensions and historical traces
     // }
 
     // todo: save all proposals (dynamic_proposals.json)
