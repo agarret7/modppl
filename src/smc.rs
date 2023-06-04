@@ -3,22 +3,40 @@ use crate::{dists, types_2d};
 use dists::Distribution;
 
 pub struct ParticleFilterState {
-    points: Vec<Vec<types_2d::Point>>,
-    weights: Vec<f32>
+    pub traces: Vec<Vec<types_2d::Point>>,
+    pub weights: Vec<f32>
+}
+
+
+fn logsumexp(xs: &Vec<f32>) -> f32 {
+    let max = xs.iter().cloned().fold(-1./0. /* -inf */, f32::max);
+    const negative_infinity: f32 = -f32::INFINITY;
+    if max == -negative_infinity {
+        return -negative_infinity
+    } else {
+        let mut sum_exp = 0.;
+        for x in xs {
+            sum_exp += (x - max).exp();
+        }
+        return sum_exp.ln();
+    }
 }
 
 impl ParticleFilterState {
 
-    pub fn new(rng: &mut ThreadRng, num_samples: u32, b: &types_2d::Bounds) -> ParticleFilterState {
+    pub fn new(rng: &mut ThreadRng, num_samples: u32, b: &types_2d::Bounds, obs: &types_2d::Point) -> ParticleFilterState {
         let mut points = vec![];
         let mut weights = vec![];
+        let obs_std = 0.1;
         for _ in 0..num_samples {
             let point = dists::uniform_2d.random(rng, b);
-            let weight = dists::uniform_2d.logpdf(&point, b);
+            let weight = dists::uniform_2d.logpdf(&point, b)
+                + dists::normal.logpdf(&point.x, &(obs.x, obs_std))
+                + dists::normal.logpdf(&point.y, &(obs.y, obs_std));
             points.push(point);
             weights.push(weight);
         }
-        ParticleFilterState { points: vec![points], weights: weights }
+        ParticleFilterState { traces: points.into_iter().map(|p| vec![p]).collect::<Vec<Vec<types_2d::Point>>>(), weights: weights }
     }
 
     pub fn step(
@@ -27,8 +45,8 @@ impl ParticleFilterState {
         new_t: usize, 
         new_obs: &types_2d::Point
     ) {
-        for i in 1..self.weights.len() {
-            let old_points = &self.points[new_t-1];
+        for i in 0..self.weights.len() {
+            let old_points = &self.traces[new_t-1];
             let old_weights = self.weights[i];
             let x_std = 10.;
             let y_std = 10.;
@@ -45,7 +63,16 @@ impl ParticleFilterState {
         false
     }
 
-    fn sampled_unweighted_points(&mut self, rng: &mut ThreadRng, num_samples: u32) {
+    pub fn sample_unweighted_traces(&mut self, rng: &mut ThreadRng, num_samples: u32) {
+        let norm_f = logsumexp(&self.weights);
+        let probs = &self.weights.iter()
+            .map(|w| (w - norm_f).exp())
+            .collect::<Vec<f32>>();
+        self.traces = (0..self.traces.len())
+            .map(|_| dists::categorical.random(rng, probs))
+            .map(|idx| self.traces[idx].clone())
+            .collect::<Vec<Vec<types_2d::Point>>>();
+        self.weights = self.traces.iter().map(|_| 0.).collect::<Vec<f32>>();
     }
 
 }
