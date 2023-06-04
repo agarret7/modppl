@@ -1,5 +1,5 @@
 use rand::rngs::ThreadRng;
-use crate::{dists, types_2d};
+use crate::{dists, types_2d, mathutils::logsumexp};
 use dists::Distribution;
 
 pub struct ParticleFilterState {
@@ -8,35 +8,25 @@ pub struct ParticleFilterState {
 }
 
 
-fn logsumexp(xs: &Vec<f32>) -> f32 {
-    let max = xs.iter().cloned().fold(-1./0. /* -inf */, f32::max);
-    const negative_infinity: f32 = -f32::INFINITY;
-    if max == -negative_infinity {
-        return -negative_infinity
-    } else {
-        let mut sum_exp = 0.;
-        for x in xs {
-            sum_exp += (x - max).exp();
-        }
-        return sum_exp.ln();
-    }
-}
-
 impl ParticleFilterState {
 
     pub fn new(rng: &mut ThreadRng, num_samples: u32, b: &types_2d::Bounds, obs: &types_2d::Point) -> ParticleFilterState {
         let mut points = vec![];
         let mut weights = vec![];
-        let obs_std = 0.1;
+        let obs_std = 0.02;
         for _ in 0..num_samples {
             let point = dists::uniform_2d.random(rng, b);
-            let weight = dists::uniform_2d.logpdf(&point, b)
-                + dists::normal.logpdf(&point.x, &(obs.x, obs_std))
-                + dists::normal.logpdf(&point.y, &(obs.y, obs_std));
+            let weight = dists::uniform_2d.logpdf(&point, b)                // prior
+                       + dists::normal.logpdf(&obs.x, &(point.x, obs_std))  // likelihood
+                       + dists::normal.logpdf(&obs.y, &(point.y, obs_std));
             points.push(point);
             weights.push(weight);
         }
-        ParticleFilterState { traces: points.into_iter().map(|p| vec![p]).collect::<Vec<Vec<types_2d::Point>>>(), weights: weights }
+        ParticleFilterState {
+            traces: points.into_iter().map(|p| vec![p])
+                .collect::<Vec<Vec<types_2d::Point>>>(),
+            weights: weights
+        }
     }
 
     pub fn step(
@@ -55,7 +45,7 @@ impl ParticleFilterState {
             let proposed_p = types_2d::Point { x: old_points[0].x + dx, y: old_points[0].y + dy };
             let inc = dists::normal.logpdf(&(new_obs.x as f32), &(proposed_p.x as f32, x_std))
                     + dists::normal.logpdf(&(new_obs.y as f32), &(proposed_p.y as f32, y_std));
-            // *pf_state.points[new_t] = 
+            // *pf_state.points[new_t] = ...
         }
     }
 
@@ -68,7 +58,7 @@ impl ParticleFilterState {
         let probs = &self.weights.iter()
             .map(|w| (w - norm_f).exp())
             .collect::<Vec<f32>>();
-        self.traces = (0..self.traces.len())
+        self.traces = (0..num_samples)
             .map(|_| dists::categorical.random(rng, probs))
             .map(|idx| self.traces[idx].clone())
             .collect::<Vec<Vec<types_2d::Point>>>();

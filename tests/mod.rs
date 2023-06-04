@@ -57,8 +57,8 @@ fn test_categorical() {
     let mut rng = ThreadRng::default();
     let labels = vec!["a", "b", "c", "d", "e", "f"];
     let probs = vec![0.1, 0.3, 0.2, 0.1, 0.05, 0.25];
-    let N = 50000;
-    let sample_indices = (0..N).map(|_| categorical.random(&mut rng, &probs)).collect::<Vec<usize>>();
+    let num_samples = 50000;
+    let sample_indices = (0..num_samples).map(|_| categorical.random(&mut rng, &probs)).collect::<Vec<usize>>();
 
     let samples = sample_indices.iter().map(|idx| labels[*idx]).collect::<Vec<&str>>();
 
@@ -68,7 +68,7 @@ fn test_categorical() {
         *count.entry(item).or_insert(0) += 1;
     }
     for (i, gt_freq) in (0..6).zip(probs.iter()) {
-        let freq = count[&labels[i]] as f32 / N as f32;
+        let freq = count[&labels[i]] as f32 / num_samples as f32;
         approx::assert_abs_diff_eq!(freq, gt_freq, epsilon = 0.01);
     }
 }
