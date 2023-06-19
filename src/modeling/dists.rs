@@ -24,12 +24,13 @@ impl Distribution<f32,(f32,f32)> for Normal {
     }
 
     fn random(&self, rng: &mut ThreadRng, params: &(f32,f32)) -> f32 {
-        let u: f32 = (rng.sample(Uniform::new(0.,1.))) * 2. - 1.;
-        let v: f32 = (rng.sample(Uniform::new(0.,1.))) * 2. - 1.;
+        let (mu, std) = params;
+        let u: f32 = rng.sample(Uniform::new(0.,1.)) * 2. - 1.;
+        let v: f32 = rng.sample(Uniform::new(0.,1.)) * 2. - 1.;
         let r: f32 = u * u + v * v;
         if r == 0. || r > 1. { return self.random(rng, params); }
-        let c = f32::powf(-2. * r.ln() / r, 0.5);
-        return u * c;
+        let c = (-2. * r.ln() / r).sqrt();
+        return u * c * std + mu;
     }
 }
 
