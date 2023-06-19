@@ -2,9 +2,6 @@ use rand::rngs::ThreadRng;
 use std::rc::Rc;
 use std::any::Any;
 
-// use crate::ChoiceHashMap;
-use crate::mathutils::logsumexp;
-
 
 pub type Addr = &'static str;
 pub trait ChoiceVal : Any { }

@@ -37,14 +37,15 @@ impl GenerativeFunction for PointedModel {
 
         let latent_choice: Rc<types_2d::Point>;
 
+        // manual latent branch
         if choices.has_value("latent") {
-
             latent_choice = Rc::clone((choices.get_value("latent") as &dyn Any).downcast_ref::<Rc<types_2d::Point>>().unwrap());
             weight += dists::uniform_2d.logpdf(&latent_choice, &bounds);
         } else {
             latent_choice = Rc::new(dists::uniform_2d.random(rng, &bounds));
         }
 
+        // manual obs branch
         let obs_choice: Rc<types_2d::Point>;
 
         if choices.has_value("obs") {

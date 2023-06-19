@@ -18,3 +18,4 @@ pub use choices::ChoiceHashMap;
 
 // inference interface
 pub use inference::importance_sampling;
+pub use inference::metropolis_hastings;
