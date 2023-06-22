@@ -9,7 +9,7 @@ pub mod pointed;
 use pointed::{PointedModel, DriftProposal};
 
 #[test]
-fn test_importance_sampling() -> std::io::Result<()> {
+fn test_metropolis_hastings() -> std::io::Result<()> {
     create_dir_all("data")?;
 
     let mut rng = ThreadRng::default();
