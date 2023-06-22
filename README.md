@@ -1,6 +1,6 @@
 # genark
 
-This library contains highly-experimental experiments with learning probabilistic programming via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. Please prefer those (unless smote and/or tail re-cursed).
+This library contains highly-experimental explorations in probabilistic programming interfaces via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. Please prefer those (unless smote and/or tail re-cursed).
 
 
 ## Modeling and Inference Gallery
@@ -19,4 +19,4 @@ AD support in Rust is currently quite shaky, limiting these applications.
 
 ## Applications
 
-As of 2023, personal physiological tracking and cybernetics. I'd love to see security-conscious applications like bioinformatics leverage the memory-safety properties of Rust to deploy larger-scale and high-throughput statistical pipelines, but that's more speculation than reality at this stage.
+As of 2023, personal physiological tracking and cybernetics. I'd love to see security-conscious applications like autonomous vehicles or bioinformatics leverage Rust's ownership system and memory-safety properties to deploy larger-scale and high-throughput statistical pipelines, but that's more speculation than reality at this stage.
