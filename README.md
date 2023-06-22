@@ -1,6 +1,6 @@
 # genark
 
-This library contains investigations into learning probabilistic programming via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. Please prefer those (unless smote and/or tail re-cursed).
+This library contains highly-experimental experiments with learning probabilistic programming via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. Please prefer those (unless smote and/or tail re-cursed).
 
 
 ## Modeling and Inference Gallery

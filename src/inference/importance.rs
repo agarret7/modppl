@@ -7,9 +7,9 @@ use crate::{
 };
 
 
-pub fn importance_sampling<X,T,U: Trace<X=X,T=T>>(
+pub fn importance_sampling<X,T,U: Trace<T=T>>(
     rng: &mut ThreadRng,
-    model: impl GenerativeFunction<X=X,T=T,U=U>,
+    model: &impl GenerativeFunction<X=X,T=T,U=U>,
     model_args: Rc<X>,
     observations: impl ChoiceBuffer,
     num_samples: u32

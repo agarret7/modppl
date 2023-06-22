@@ -1,5 +1,5 @@
 #![feature(return_position_impl_trait_in_trait)]
-#![feature(impl_trait_in_assoc_type)]
+#![feature(associated_type_defaults)]
 
 pub mod types_2d;
 pub mod gfi;
@@ -19,3 +19,4 @@ pub use choices::ChoiceHashMap;
 // inference interface
 pub use inference::importance_sampling;
 pub use inference::metropolis_hastings;
+pub use inference::mh;
