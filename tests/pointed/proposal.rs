@@ -22,6 +22,7 @@ impl GenerativeFunction for DriftProposal {
     fn simulate(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> Self::U {
         let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
+        choices.set_value("obs", &prev_choices["obs"]);
 
         let new_latent = Rc::new(Point {
             x: dists::normal.random(rng, &(prev_choices["latent"].x, self.drift_std)),
@@ -35,10 +36,7 @@ impl GenerativeFunction for DriftProposal {
     fn generate(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> Self::U {
         let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
-        let prev_obs = (prev_choices.get_value("obs") as &dyn Any)
-            .downcast_ref::<Rc<Point>>()
-            .unwrap();
-        choices.set_value("obs", prev_obs);
+        choices.set_value("obs", &prev_choices["obs"]);
 
         let new_latent: Rc<Point>;
         let weight;
@@ -47,8 +45,8 @@ impl GenerativeFunction for DriftProposal {
                 .downcast_ref::<Rc<Point>>()
                 .unwrap()
                 .clone();
-            weight = dists::normal.logpdf(&prev_choices["latent"].x, &(new_latent.x, self.drift_std))
-                + dists::normal.logpdf(&prev_choices["latent"].y, &(new_latent.y, self.drift_std));
+            weight = dists::normal.logpdf(&new_latent.x, &(prev_choices["latent"].x, self.drift_std))
+                + dists::normal.logpdf(&new_latent.y, &(prev_choices["latent"].y, self.drift_std));
         } else {
             new_latent = Rc::new(Point {
                 x: dists::normal.random(rng, &(prev_choices["latent"].x, self.drift_std)),
@@ -63,8 +61,9 @@ impl GenerativeFunction for DriftProposal {
 
     fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (ChoiceHashMap<Point>, f32) {
         let prev_latent = args.0.get_choices()["latent"].clone();
-        let new_choices = self.simulate(rng, args).get_choices();
-        let new_latent = new_choices["latent"].clone();
+        let new_latent = self.simulate(rng, args).get_choices()["latent"].clone();
+        let mut new_choices = ChoiceHashMap::new();
+        new_choices.set_value("latent", &new_latent);
         let weight = dists::normal.logpdf(&prev_latent.x, &(new_latent.x, self.drift_std))
             + dists::normal.logpdf(&prev_latent.y, &(new_latent.y, self.drift_std));
         (new_choices, weight)

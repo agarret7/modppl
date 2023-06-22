@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use rand::rngs::ThreadRng;
-use math::stats;
+use statistical::{mean, standard_deviation};
 use approx;
 use genark::{
     types_2d,
@@ -17,8 +17,8 @@ fn test_normal() {
     let mut rng = ThreadRng::default();
 
     let samples = (0..50000).map(|_| normal.random(&mut rng, &(1.64, 0.025))).collect::<Vec<f32>>();
-    let empirical_mu = stats::mean(samples.iter());
-    let empirical_std = stats::standard_deviation(samples.iter(), 1);
+    let empirical_mu = mean(&samples);
+    let empirical_std = standard_deviation(&samples, None);
     approx::assert_abs_diff_eq!(empirical_mu, 1.64, epsilon = 0.02);
     approx::assert_abs_diff_eq!(empirical_std, 0.025, epsilon = 0.02);
 

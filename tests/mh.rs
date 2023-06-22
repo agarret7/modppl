@@ -13,7 +13,7 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
     create_dir_all("data")?;
 
     let mut rng = ThreadRng::default();
-    const NUM_ITERS: usize = 100000;
+    const NUM_ITERS: usize = 25000;
 
     let model = &PointedModel { obs_std: 0.25 };
     let proposal = &DriftProposal { drift_std: 0.025 };
@@ -23,18 +23,16 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
     let mut constraints = ChoiceHashMap::<Point>::new();
     constraints.set_value("obs", &Rc::new(obs));
 
-    let trace = Rc::new(model.generate(&mut rng, bounds.clone(), constraints));
-
-    let data = *trace.get_choices()["latent"];
-    let json = serde_json::to_string(&data)?;
-    write("data/initial_mcmc_trace.json", json)?;
+    let mut trace = Rc::new(model.generate(&mut rng, bounds.clone(), constraints));
 
     for i in 0..NUM_ITERS {
-        let (trace, accepted) = genark::mh(&mut rng, model, trace.clone(), proposal, bounds.clone());
+        dbg!(i);
+        let (new_trace, accepted) = genark::mh(&mut rng, model, trace.clone(), proposal, bounds.clone());
+        trace = new_trace;
         dbg!(accepted);
         let data = *trace.get_choices()["latent"];
         let json = serde_json::to_string(&data)?;
-        write("data/mcmc_trace.json", json)?;
+        write(format!("data/mh_trace_{}.json", i), json)?;
     }
     
     Ok(())

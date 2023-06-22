@@ -10,7 +10,7 @@ use pointed::{PointedModel, PointedTrace};
 pub mod pointed;
 
 #[test]
-fn test_importance_sampling() -> std::io::Result<()> {
+fn test_importance() -> std::io::Result<()> {
     create_dir_all("data")?;
 
     let mut rng = ThreadRng::default();

@@ -63,6 +63,7 @@ impl GenerativeFunction for PointedModel {
                 y: dists::normal.random(rng, &(latent_choice.y, self.obs_std))
             });
         }
+        dbg!(weight);
         choices.set_value("obs", &obs_choice);
 
         PointedTrace::new(bounds, choices, weight)
@@ -79,35 +80,47 @@ impl GenerativeFunction for PointedModel {
     }
 
     fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Point>) {
-        // this is wrong
-        let old_choices = trace.get_choices() as ChoiceHashMap<Point>;
+        let prev_choices = trace.get_choices() as ChoiceHashMap<Point>;
+        let bounds = trace.get_args();
         let mut new_choices = ChoiceHashMap::<Point>::new();
         let mut discard = ChoiceHashMap::<Point>::new();
 
-        let mut latent_choice = (old_choices.get_value("latent") as &dyn Any)
-            .downcast_ref::<Rc<Point>>()
-            .unwrap()
-            .clone();
+        let mut new_score = 0.;
+        dbg!(trace.get_score());
+
+        let mut latent_choice = prev_choices["latent"].clone();
         if constraints.has_value("latent") {
             discard.set_value("latent", &latent_choice);
             latent_choice = (constraints.get_value("latent") as &dyn Any)
                 .downcast_ref::<Rc<Point>>()
                 .unwrap()
                 .clone();
+            new_score = new_score - dists::uniform_2d.logpdf(&prev_choices["latent"], &bounds)
         }
+        new_score = new_score + dists::uniform_2d.logpdf(&latent_choice, &bounds);
         new_choices.set_value("latent", &latent_choice);
 
-        let obs_choice: Rc<Point>;
+        let mut obs_choice = prev_choices["obs"].clone();
         if constraints.has_value("obs") {
-
-        } else {
-
+            println!("HAD OBS THAT IS REPLACED");
+            discard.set_value("obs", &obs_choice);
+            obs_choice = (constraints.get_value("latent") as &dyn Any)
+                .downcast_ref::<Rc<Point>>()
+                .unwrap()
+                .clone();
+            new_score = new_score
+                - dists::normal.logpdf(&prev_choices["obs"].x, &(latent_choice.x, self.obs_std))
+                - dists::normal.logpdf(&prev_choices["obs"].y, &(latent_choice.y, self.obs_std));
         }
+        new_score = new_score
+            + dists::normal.logpdf(&obs_choice.x, &(latent_choice.x, self.obs_std))
+            + dists::normal.logpdf(&obs_choice.y, &(latent_choice.y, self.obs_std));
+        new_choices.set_value("obs", &obs_choice);
 
         let new_trace = PointedTrace::new(
             trace.get_args(),
-            trace.get_choices(),
-            trace.get_score()
+            new_choices,
+            new_score
         );
         (new_trace, discard)
     }
