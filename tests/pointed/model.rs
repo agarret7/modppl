@@ -63,7 +63,6 @@ impl GenerativeFunction for PointedModel {
                 y: dists::normal.random(rng, &(latent_choice.y, self.obs_std))
             });
         }
-        dbg!(weight);
         choices.set_value("obs", &obs_choice);
 
         PointedTrace::new(bounds, choices, weight)
@@ -86,7 +85,6 @@ impl GenerativeFunction for PointedModel {
         let mut discard = ChoiceHashMap::<Point>::new();
 
         let mut new_score = 0.;
-        dbg!(trace.get_score());
 
         let mut latent_choice = prev_choices["latent"].clone();
         if constraints.has_value("latent") {

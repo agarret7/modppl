@@ -6,6 +6,7 @@ use genark::{
     types_2d,
     modeling::dists::{
         Distribution,
+        bernoulli,
         normal,
         uniform_2d,
         categorical
@@ -13,14 +14,30 @@ use genark::{
 };
 
 #[test]
+fn test_bernoulli() {
+    let mut rng = ThreadRng::default();
+
+    let true_p = 0.11;
+    let samples = &(0..50000).map(|_| bernoulli.random(&mut rng, &0.11)).collect::<Vec<bool>>();
+
+    let empirical_true = samples.iter().filter(|&&x| x).collect::<Vec<_>>().len();
+    let empirical_false = samples.iter().filter(|&&x| !x).collect::<Vec<_>>().len();
+    let empirical_freq = empirical_true as f32 / empirical_false as f32;
+    approx::assert_abs_diff_eq!(empirical_freq, true_p, epsilon = 0.02);
+}
+
+#[test]
 fn test_normal() {
     let mut rng = ThreadRng::default();
 
-    let samples = (0..50000).map(|_| normal.random(&mut rng, &(1.64, 0.025))).collect::<Vec<f32>>();
+    let true_mu = 1.64;
+    let true_std = 0.025;
+    let samples = (0..50000).map(|_| normal.random(&mut rng, &(true_mu, true_std))).collect::<Vec<f32>>();
+
     let empirical_mu = mean(&samples);
     let empirical_std = standard_deviation(&samples, None);
-    approx::assert_abs_diff_eq!(empirical_mu, 1.64, epsilon = 0.02);
-    approx::assert_abs_diff_eq!(empirical_std, 0.025, epsilon = 0.02);
+    approx::assert_abs_diff_eq!(empirical_mu, true_mu, epsilon = 0.02);
+    approx::assert_abs_diff_eq!(empirical_std, true_std, epsilon = 0.02);
 
     let x = 1.4;
     let mu = 0.9;

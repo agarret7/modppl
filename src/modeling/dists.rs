@@ -1,15 +1,31 @@
 use std::f32::consts::PI;
-use rand::{Rng, rngs::ThreadRng};
-use rand::distributions::Uniform;
+use rand::{self,Rng, rngs::ThreadRng};
 
 use crate::types_2d;
 
 
 // Distributions
 
+pub fn u01(rng: &mut ThreadRng) -> f32 {
+    rng.sample(rand::distributions::Uniform::new(0., 1.))
+}
+
 pub trait Distribution<T,U> {
     fn logpdf(&self, x: &T, params: &U) -> f32;
     fn random(&self, rng: &mut ThreadRng, params: &U) -> T;
+}
+
+pub struct Bernoulli { }
+pub const bernoulli: Bernoulli = Bernoulli { };
+
+impl Distribution<bool,f32> for Bernoulli {
+    fn logpdf(&self, a: &bool, p: &f32) -> f32 {
+        (if *a { *p } else { 1. - *p }).ln()
+    }
+
+    fn random(&self, rng: &mut ThreadRng, p: &f32) -> bool {
+        *p > u01(rng)
+    }
 }
 
 
@@ -25,8 +41,8 @@ impl Distribution<f32,(f32,f32)> for Normal {
 
     fn random(&self, rng: &mut ThreadRng, params: &(f32,f32)) -> f32 {
         let (mu, std) = params;
-        let u: f32 = rng.sample(Uniform::new(0.,1.)) * 2. - 1.;
-        let v: f32 = rng.sample(Uniform::new(0.,1.)) * 2. - 1.;
+        let u: f32 = u01(rng) * 2. - 1.;
+        let v: f32 = u01(rng) * 2. - 1.;
         let r: f32 = u * u + v * v;
         if r == 0. || r > 1. { return self.random(rng, params); }
         let c = (-2. * r.ln() / r).sqrt();
@@ -50,8 +66,8 @@ impl Distribution<types_2d::Point,types_2d::Bounds> for Uniform2D {
         assert!(b.xmax > b.xmin);
         assert!(b.ymax > b.ymin);
         types_2d::Point {
-            x: rng.sample(Uniform::new(b.xmin,b.xmax)),
-            y: rng.sample(Uniform::new(b.xmin,b.ymax)),
+            x: u01(rng)*(b.xmax - b.xmin) + b.xmin,
+            y: u01(rng)*(b.ymax - b.ymin) + b.ymin
         }
     }
 }
@@ -69,7 +85,7 @@ impl Distribution<usize,Vec<f32>> for Categorical {
     }
 
     fn random(&self, rng: &mut ThreadRng, probs: &Vec<f32>) -> usize {
-        let u = rng.sample(Uniform::new(1e-12, 1.));
+        let u = u01(rng);
         let mut t = 0.;
         let mut x: usize = 0;
         while t < u {

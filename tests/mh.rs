@@ -13,7 +13,7 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
     create_dir_all("data")?;
 
     let mut rng = ThreadRng::default();
-    const NUM_ITERS: usize = 25000;
+    const NUM_ITERS: u32 = 25000;
 
     let model = &PointedModel { obs_std: 0.25 };
     let proposal = &DriftProposal { drift_std: 0.025 };
@@ -24,15 +24,14 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
     constraints.set_value("obs", &Rc::new(obs));
 
     let mut trace = Rc::new(model.generate(&mut rng, bounds.clone(), constraints));
-
-    for i in 0..NUM_ITERS {
-        dbg!(i);
+    for iter in 0..NUM_ITERS {
+        dbg!(iter);
         let (new_trace, accepted) = genark::mh(&mut rng, model, trace.clone(), proposal, bounds.clone());
-        trace = new_trace;
         dbg!(accepted);
+        trace = new_trace;
         let data = *trace.get_choices()["latent"];
         let json = serde_json::to_string(&data)?;
-        write(format!("data/mh_trace_{}.json", i), json)?;
+        write(format!("data/mh_trace_{}.json", iter), json)?;
     }
     
     Ok(())
