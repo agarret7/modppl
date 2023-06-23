@@ -18,7 +18,9 @@ fn test_bernoulli() {
     let mut rng = ThreadRng::default();
 
     let true_p = 0.11;
-    let samples = &(0..50000).map(|_| bernoulli.random(&mut rng, &0.11)).collect::<Vec<bool>>();
+    assert!(bernoulli.logpdf(&true, &true_p) == true_p.ln());
+    assert!(bernoulli.logpdf(&false, &true_p) == (1.-true_p).ln());
+    let samples = (0..50000).map(|_| bernoulli.random(&mut rng, &0.11)).collect::<Vec<bool>>();
 
     let empirical_true = samples.iter().filter(|&&x| x).collect::<Vec<_>>().len();
     let empirical_false = samples.iter().filter(|&&x| !x).collect::<Vec<_>>().len();
