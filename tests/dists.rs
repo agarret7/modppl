@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use rand::rngs::ThreadRng;
 use statistical::{mean, standard_deviation};
 use approx;
-use genark::{
+use gen_rs::{
     types_2d,
     modeling::dists::{
         Distribution,

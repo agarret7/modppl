@@ -31,8 +31,9 @@ pub trait GenerativeFunction {
     fn simulate(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> Self::U;
     fn generate(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> Self::U;
 
-    // current assumption: no changes to input arguments
     fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (impl ChoiceBuffer, f32);
     fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f32;
+
+    // current assumption: no changes to input arguments
     fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, impl ChoiceBuffer);
 }

@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use genark::{
+use gen_rs::{
     types_2d::{Bounds,Point},
     ChoiceBuffer, Trace, ChoiceHashMap
 };

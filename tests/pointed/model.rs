@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::any::Any;
 use rand::rngs::ThreadRng;
-use genark::{
+use gen_rs::{
     types_2d::{Bounds,Point},
     modeling::dists::{self, Distribution},
     GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer
@@ -100,7 +100,6 @@ impl GenerativeFunction for PointedModel {
 
         let mut obs_choice = prev_choices["obs"].clone();
         if constraints.has_value("obs") {
-            println!("HAD OBS THAT IS REPLACED");
             discard.set_value("obs", &obs_choice);
             obs_choice = (constraints.get_value("latent") as &dyn Any)
                 .downcast_ref::<Rc<Point>>()

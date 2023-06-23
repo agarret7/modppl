@@ -2,8 +2,8 @@ use std::fs::{write, create_dir_all};
 use std::rc::Rc;
 use rand::rngs::ThreadRng;
 
-use genark::{GenerativeFunction,Trace,ChoiceBuffer,ChoiceHashMap};
-use genark::types_2d::{Bounds,Point};
+use gen_rs::{GenerativeFunction,Trace,ChoiceBuffer,ChoiceHashMap};
+use gen_rs::types_2d::{Bounds,Point};
 
 pub mod pointed;
 use pointed::{PointedModel, DriftProposal};
@@ -26,7 +26,7 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
     let mut trace = Rc::new(model.generate(&mut rng, bounds.clone(), constraints));
     for iter in 0..NUM_ITERS {
         dbg!(iter);
-        let (new_trace, accepted) = genark::mh(&mut rng, model, trace.clone(), proposal, bounds.clone());
+        let (new_trace, accepted) = gen_rs::mh(&mut rng, model, trace.clone(), proposal, bounds.clone());
         dbg!(accepted);
         trace = new_trace;
         let data = *trace.get_choices()["latent"];

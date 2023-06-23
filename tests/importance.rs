@@ -2,9 +2,9 @@ use std::fs::{write, create_dir_all};
 use std::rc::Rc;
 use rand::rngs::ThreadRng;
 
-use genark::modeling::dists::{Distribution, categorical};
-use genark::{Trace,ChoiceBuffer,ChoiceHashMap};
-use genark::types_2d::{Bounds,Point};
+use gen_rs::modeling::dists::{Distribution, categorical};
+use gen_rs::{Trace,ChoiceBuffer,ChoiceHashMap};
+use gen_rs::types_2d::{Bounds,Point};
 use pointed::{PointedModel, PointedTrace};
 
 pub mod pointed;
@@ -24,7 +24,7 @@ fn test_importance() -> std::io::Result<()> {
     constraints.set_value("obs", &Rc::new(obs));
 
     let (traces, log_normalized_weights, log_ml_estimate) = 
-        genark::importance_sampling(&mut rng, model, Rc::new(bounds), constraints, NUM_SAMPLES);
+        gen_rs::importance_sampling(&mut rng, model, Rc::new(bounds), constraints, NUM_SAMPLES);
 
     dbg!(log_ml_estimate);
 
