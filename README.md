@@ -10,13 +10,15 @@ TBD
 
 ## Motivation
 
-As it stands, the OpenGen ecosystem is mostly leveraged by scientific practitioners in Julia or advanced users of Google's Jax. I believe it's plausible that Rust could one day expand the scope of OpenGen to a broader community of hard-working and dedicated open-source systems engineers.
+Primarily self-edification.
 
-Note unlike most modern ML systems, probabilistic programming doesn't require a differentiable likelihood; a fast (possibly parallelized) iterator is often sufficient for inference. This aligns well with Rust's principle of "fearless concurrency". However, most embodied (read: practical) modeling efforts will still require parameter tuning and Langevin or Hamiltonian Monte Carlo inference moves, to effectively leverage numerical gradients of the local energy landscape in top-down or supervised data processing.
+Unlike most modern ML systems, probabilistic programming doesn't require a differentiable likelihood; a fast (possibly parallelized) iterator is often sufficient for inference. This aligns well with Rust's principle of "fearless concurrency". However, most embodied (read: practical) modeling efforts still require extensive parameter tuning and Langevin or Hamiltonian Monte Carlo inference moves, to effectively leverage numerical gradients of the local energy landscape in top-down or supervised data processing.
 
-AD support in Rust is currently quite shaky, limiting these applications.
+Despite Rust being an absolutely delightful experience to program in, AD support and GPU acceleration is somewhat shaky (given the lack of first-class Rust-native tensor libraries), limiting these applications.
 
 
 ## Applications
 
 As of 2023, personal physiological tracking and cybernetics. I'd love to see security-conscious applications like autonomous vehicles or bioinformatics leverage Rust's ownership system and memory-safety properties to deploy larger-scale and high-throughput statistical pipelines, but that's total speculation at this stage.
+
+Furthermore, since large-scale open-source simulation is still firmly rooted in the C/C++ (and to a lesser extent C#) world, I don't expect this to change anytime soon.
