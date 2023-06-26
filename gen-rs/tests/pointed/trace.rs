@@ -14,14 +14,14 @@ use super::types_2d::{Point,Bounds};
 pub struct PointedTrace {
     args: Rc<Bounds>,
     choices: ChoiceHashMap<Point>,
-    score: f32
+    score: f64
 }
 
 impl PointedTrace {
     pub fn new(
         args: Rc<Bounds>,
         choices: ChoiceHashMap<Point>,
-        score: f32
+        score: f64
     ) -> PointedTrace {
         PointedTrace {
             args: args,
@@ -51,7 +51,7 @@ impl Trace for PointedTrace {
         self.choices["obs"].clone()
     }
 
-    fn get_score(&self) -> f32 {
+    fn get_score(&self) -> f64 {
         self.score
     }
 

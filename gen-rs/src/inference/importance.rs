@@ -13,14 +13,14 @@ pub fn importance_sampling<X,T,U: Trace<T=T>>(
     model_args: Rc<X>,
     observations: impl ChoiceBuffer,
     num_samples: u32
-) -> (Vec<U>, Vec<f32>, f32) {
+) -> (Vec<U>, Vec<f64>, f64) {
     let traces = (0..num_samples)
         .map(|_| model.generate(rng, Rc::clone(&model_args), observations.clone()))
         .collect::<Vec<U>>();
-    let log_total_weight = logsumexp(&traces.iter().map(|tr| tr.get_score()).collect::<Vec<f32>>());
-    let log_ml_estimate = log_total_weight - (num_samples as f32).ln();
+    let log_total_weight = logsumexp(&traces.iter().map(|tr| tr.get_score()).collect::<Vec<f64>>());
+    let log_ml_estimate = log_total_weight - (num_samples as f64).ln();
     let log_normalized_weights = traces.iter()
         .map(|tr| tr.get_score() - log_total_weight)
-        .collect::<Vec<f32>>();
+        .collect::<Vec<f64>>();
     return (traces, log_normalized_weights, log_ml_estimate)
 }

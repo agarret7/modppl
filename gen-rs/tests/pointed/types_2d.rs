@@ -4,21 +4,21 @@ use gen_rs::dists::{self, Distribution};
 
 
 #[derive(Clone, Copy)]
-pub struct Bounds { pub xmin: f32, pub xmax: f32, pub ymin: f32, pub ymax: f32 }
+pub struct Bounds { pub xmin: f64, pub xmax: f64, pub ymin: f64, pub ymax: f64 }
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-pub struct Point { pub x: f32, pub y: f32 }
+pub struct Point { pub x: f64, pub y: f64 }
 
 
 pub struct Uniform2D { }
 pub const uniform_2d: Uniform2D = Uniform2D { };
 
 impl Distribution<Point,Bounds> for Uniform2D {
-    fn logpdf(&self, p: &Point, b: &Bounds) -> f32 {
+    fn logpdf(&self, p: &Point, b: &Bounds) -> f64 {
         return if b.xmin <= p.x && p.x <= b.xmax && b.ymin <= p.y && p.y <= b.ymax {
-            -((b.xmax - b.xmin) as f32 * (b.ymax - b.ymin) as f32).ln()
+            -((b.xmax - b.xmin) as f64 * (b.ymax - b.ymin) as f64).ln()
         } else {
-            -f32::INFINITY
+            -f64::INFINITY
         }
     }
 
@@ -43,8 +43,8 @@ fn test_uniform2d() {
         assert!(sample.x <= bounds.xmax);
         assert!(sample.y >= bounds.ymin);
         assert!(sample.y <= bounds.ymax);
-        approx::assert_abs_diff_eq!(uniform_2d.logpdf(&sample, &bounds), -1.1394343, epsilon=f32::EPSILON);
+        approx::assert_abs_diff_eq!(uniform_2d.logpdf(&sample, &bounds), -1.1394342831883648, epsilon=f64::EPSILON);
     }
 
-    assert_eq!(uniform_2d.logpdf(&Point { x: -1., y: 0.}, &bounds), -f32::INFINITY);
+    assert_eq!(uniform_2d.logpdf(&Point { x: -1., y: 0.}, &bounds), -f64::INFINITY);
 }

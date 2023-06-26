@@ -34,7 +34,7 @@ fn test_importance() -> std::io::Result<()> {
 
     let probs = &log_normalized_weights.iter()
         .map(|w| (w - log_ml_estimate).exp())
-        .collect::<Vec<f32>>();
+        .collect::<Vec<f64>>();
     let traces = (0..NUM_SAMPLES/10)
         .map(|_| categorical.random(&mut rng, probs))
         .map(|idx| &traces[idx])

@@ -1,6 +1,6 @@
-pub fn logsumexp(xs: &Vec<f32>) -> f32 {
-    let max = xs.iter().cloned().fold(-1./0. /* -inf */, f32::max);
-    const NEGATIVE_INFINITY: f32 = -f32::INFINITY;
+pub fn logsumexp(xs: &Vec<f64>) -> f64 {
+    let max = xs.iter().cloned().fold(-1./0. /* -inf */, f64::max);
+    const NEGATIVE_INFINITY: f64 = -f64::INFINITY;
     if max == NEGATIVE_INFINITY {
         return NEGATIVE_INFINITY
     } else {

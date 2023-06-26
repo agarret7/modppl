@@ -10,7 +10,7 @@ use super::trace::PointedTrace;
 
 
 pub struct DriftProposal {
-    pub drift_std: f32
+    pub drift_std: f64
 }
 
 impl GenerativeFunction for DriftProposal {
@@ -59,7 +59,7 @@ impl GenerativeFunction for DriftProposal {
         PointedTrace::new(bounds, choices, weight)
     }
 
-    fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (ChoiceHashMap<Point>, f32) {
+    fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (ChoiceHashMap<Point>, f64) {
         let prev_latent = args.0.get_choices()["latent"].clone();
         let new_latent = self.simulate(rng, args).get_choices()["latent"].clone();
         let mut new_choices = ChoiceHashMap::new();
@@ -69,7 +69,7 @@ impl GenerativeFunction for DriftProposal {
         (new_choices, weight)
     }
 
-    fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f32 {
+    fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f64 {
         self.generate(rng, args, constraints).get_score()
     }
 

@@ -23,7 +23,7 @@ fn test_bernoulli() {
 
     let empirical_true = samples.iter().filter(|&&x| x).collect::<Vec<_>>().len();
     let empirical_false = samples.iter().filter(|&&x| !x).collect::<Vec<_>>().len();
-    let empirical_freq = empirical_true as f32 / empirical_false as f32;
+    let empirical_freq = empirical_true as f64 / empirical_false as f64;
     approx::assert_abs_diff_eq!(empirical_freq, true_p, epsilon = 0.02);
 }
 
@@ -33,7 +33,7 @@ fn test_normal() {
 
     let true_mu = 1.64;
     let true_std = 0.025;
-    let samples = (0..50000).map(|_| normal.random(&mut rng, &(true_mu, true_std))).collect::<Vec<f32>>();
+    let samples = (0..50000).map(|_| normal.random(&mut rng, &(true_mu, true_std))).collect::<Vec<f64>>();
 
     let empirical_mu = mean(&samples);
     let empirical_std = standard_deviation(&samples, None);
@@ -44,19 +44,19 @@ fn test_normal() {
     let mu = 0.9;
     let std = 0.5;
     let logp = normal.logpdf(&x, &(mu, std));
-    approx::assert_abs_diff_eq!(logp, -0.7257913507400731, epsilon = f32::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -0.7257913526447272, epsilon = f64::EPSILON);
 
     let x = 2.8;
     let mu = 1.8;
     let std = 1.;
     let logp = normal.logpdf(&x, &(mu, std));
-    approx::assert_abs_diff_eq!(logp, -1.4189385332046727, epsilon = f32::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -1.4189385332046727, epsilon = f64::EPSILON);
 
     let x = -3.14;
     let mu = 8.;
     let std = 20.;
     let logp = normal.logpdf(&x, &(mu, std));
-    approx::assert_abs_diff_eq!(logp, -4.069795370834944, epsilon = f32::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -4.069795306758664, epsilon = f64::EPSILON);
 }
 
 #[test]
@@ -72,12 +72,12 @@ fn test_mvnormal() {
 
     let samples = (0..50000)
         .map(|_| mvnormal.random(&mut rng, &params).data.as_vec().to_vec())
-        .collect::<Vec<Vec<f32>>>();
+        .collect::<Vec<Vec<f64>>>();
     let json = serde_json::to_string(&samples).unwrap();
     write("../mvnormal.json", json).unwrap();
 
-    let sample_xs = samples.iter().map(|p| p[0]).collect::<Vec<f32>>();
-    let sample_ys = samples.iter().map(|p| p[1]).collect::<Vec<f32>>();
+    let sample_xs = samples.iter().map(|p| p[0]).collect::<Vec<f64>>();
+    let sample_ys = samples.iter().map(|p| p[1]).collect::<Vec<f64>>();
     let e_mu_x = mean(&sample_xs);
     let e_mu_y = mean(&sample_ys);
     let e_mu = dvector![e_mu_x, e_mu_y];
@@ -87,7 +87,7 @@ fn test_mvnormal() {
     let e_var_y = variance(&sample_ys, None);
     let e_cov_xy = sample_xs.iter().zip(sample_ys)
         .map(|(x,y)| (x - true_mu[0])*(y - true_mu[1]))
-        .sum::<f32>() / samples.len() as f32;
+        .sum::<f64>() / samples.len() as f64;
     let e_cov = dmatrix![e_var_x, e_cov_xy; e_cov_xy, e_var_y];
     approx::assert_abs_diff_eq!(e_cov, true_cov, epsilon = 0.04);
 
@@ -96,7 +96,7 @@ fn test_mvnormal() {
     let cov = dmatrix![1., -0.81; -0.81, 2.5];
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, &params);
-    // approx::assert_abs_diff_eq!(logp, -2.1642100746383353, epsilon = f32::EPSILON);
+    // approx::assert_abs_diff_eq!(logp, -2.1642100746383353, epsilon = f64::EPSILON);
 }
 
 #[test]
@@ -115,7 +115,7 @@ fn test_categorical() {
         *count.entry(item).or_insert(0) += 1;
     }
     for (i, gt_freq) in (0..6).zip(probs.iter()) {
-        let freq = count[&labels[i]] as f32 / num_samples as f32;
+        let freq = count[&labels[i]] as f64 / num_samples as f64;
         approx::assert_abs_diff_eq!(freq, gt_freq, epsilon = 0.01);
     }
 }

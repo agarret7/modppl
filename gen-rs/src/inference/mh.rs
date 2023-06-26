@@ -27,7 +27,7 @@ pub fn metropolis_hastings<X,Y,T,U: Trace<T=T>>(
 
     let alpha = new_trace.get_score() - fwd_weight + bwd_weight - trace.get_score();
 
-    if rng.sample(Uniform::new(0_f32, 1_f32)).ln() < alpha {
+    if rng.sample(Uniform::new(0_f64, 1_f64)).ln() < alpha {
         (new_trace, true)
     } else {
         (trace, false)

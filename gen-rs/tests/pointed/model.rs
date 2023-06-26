@@ -10,7 +10,7 @@ use super::trace::PointedTrace;
 
 
 pub struct PointedModel {
-    pub obs_std: f32
+    pub obs_std: f64
 }
 
 impl GenerativeFunction for PointedModel {
@@ -68,11 +68,11 @@ impl GenerativeFunction for PointedModel {
         PointedTrace::new(bounds, choices, weight)
     }
 
-    fn propose(&self, _: &mut ThreadRng, _: Rc<Self::X>) -> (ChoiceHashMap<Point>, f32) {
+    fn propose(&self, _: &mut ThreadRng, _: Rc<Self::X>) -> (ChoiceHashMap<Point>, f64) {
         panic!("not implemented")
     }
 
-    fn assess(&self, _: &mut ThreadRng, _: Rc<Self::X>, _: impl ChoiceBuffer) -> f32 {
+    fn assess(&self, _: &mut ThreadRng, _: Rc<Self::X>, _: impl ChoiceBuffer) -> f64 {
         panic!("not implemented")
     }
 

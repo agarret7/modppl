@@ -21,7 +21,7 @@ pub trait Trace {
     fn get_args(&self) -> Rc<Self::X>;
     fn get_retval(&self) -> Rc<Self::T>;
     fn get_choices(&self) -> impl ChoiceBuffer;
-    fn get_score(&self) -> f32;
+    fn get_score(&self) -> f64;
 }
 
 pub trait GenerativeFunction {
@@ -32,8 +32,8 @@ pub trait GenerativeFunction {
     fn simulate(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> Self::U;
     fn generate(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> Self::U;
 
-    fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (impl ChoiceBuffer, f32);
-    fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f32;
+    fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (impl ChoiceBuffer, f64);
+    fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f64;
 
     // current assumption: no changes to input arguments
     fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, impl ChoiceBuffer);

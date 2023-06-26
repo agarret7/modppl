@@ -9,21 +9,21 @@ use gen_rs::{
 pub use super::trace::ParticleFilterState;
 
 pub struct ParticleFilterModel {
-    transition: Array2<f32>,
-    emission: Array2<f32>,
+    transition: Array2<f64>,
+    emission: Array2<f64>,
 
-    process_cov: Array2<f32>,
-    obs_cov: Array2<f32>,
+    process_cov: Array2<f64>,
+    obs_cov: Array2<f64>,
 }
 
 struct ParticleFilterArgs {
     T: u32,
-    init_latent: Array1<f32>,
+    init_latent: Array1<f64>,
 }
 
 impl GenerativeFunction for ParticleFilterModel {
     type X = ParticleFilterArgs;
-    type T = (Vec<Rc<Array1<f32>>>, Vec<Rc<Array1<f32>>>);
+    type T = (Vec<Rc<Array1<f64>>>, Vec<Rc<Array1<f64>>>);
     type U = ParticleFilterState;
 
     fn simulate(&self, rng: &mut ThreadRng, args: Rc<ParticleFilterArgs>) -> Self::U {
@@ -49,16 +49,16 @@ impl GenerativeFunction for ParticleFilterModel {
     fn generate(&self, rng: &mut ThreadRng, T: Rc<u32>, constraints: impl ChoiceBuffer) -> Self::U {
     }
 
-    fn propose(&self, _: &mut ThreadRng, _: Rc<Self::X>) -> (ChoiceHashMap<Array1<f32>>, f32) {
+    fn propose(&self, _: &mut ThreadRng, _: Rc<Self::X>) -> (ChoiceHashMap<Array1<f64>>, f64) {
         // this is wrong, but we don't call propose on this GF.
         (ChoiceHashMap::new(), 0.)
     }
 
-    fn assess(&self, _: &mut ThreadRng, _: Rc<Self::X>, _: impl ChoiceBuffer) -> f32 {
+    fn assess(&self, _: &mut ThreadRng, _: Rc<Self::X>, _: impl ChoiceBuffer) -> f64 {
         // this is wrong, but we don't call assess on this GF.
         return 0.
     }
 
-    fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Array1<f32>>) {
+    fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Array1<f64>>) {
     }
 }
