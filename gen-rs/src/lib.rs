@@ -1,7 +1,6 @@
 #![feature(return_position_impl_trait_in_trait)]
 #![feature(associated_type_defaults)]
 
-pub mod types_2d;
 pub mod gfi;
 pub mod choices;
 pub mod modeling;
@@ -9,8 +8,8 @@ pub mod inference;
 pub mod mathutils;
 
 // modeling interface
+pub use modeling::dists;
 pub use gfi::Addr;
-pub use gfi::ChoiceVal;
 pub use gfi::ChoiceBuffer;
 pub use gfi::Trace;
 pub use gfi::GenerativeFunction;

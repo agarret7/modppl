@@ -6,8 +6,8 @@ use std::{
 use rand::rngs::ThreadRng;
 use serde_json;
 
-use gen_rs::types_2d;
-// use gen_rs::inference;
+pub mod pointed;
+use pointed::types_2d;
 
 
 fn simulate_loop(bounds: &types_2d::Bounds, timesteps: i32) -> Vec<Rc<types_2d::Point>> {

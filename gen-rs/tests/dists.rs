@@ -1,14 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, thread::Thread};
 use rand::rngs::ThreadRng;
-use statistical::{mean, standard_deviation};
+use statistical::{mean, variance, standard_deviation};
 use approx;
 use gen_rs::{
-    types_2d,
     modeling::dists::{
         Distribution,
         bernoulli,
         normal,
-        uniform_2d,
+        mvnormal,
         categorical
     }
 };
@@ -61,20 +60,43 @@ fn test_normal() {
 }
 
 #[test]
-fn test_uniform2d() {
+fn test_mvnormal() {
+    use nalgebra::{dvector,dmatrix,DVector,Matrix2};
+    use std::fs::{write, create_dir_all};
+
     let mut rng = ThreadRng::default();
-    let bounds = types_2d::Bounds { xmin: 0., xmax: 2.5, ymin: -1., ymax: 0.25 };
 
-    let samples = (0..50000).map(|_| uniform_2d.random(&mut rng, &bounds)).collect::<Vec<types_2d::Point>>();
-    for sample in samples {
-        assert!(sample.x >= bounds.xmin);
-        assert!(sample.x <= bounds.xmax);
-        assert!(sample.y >= bounds.ymin);
-        assert!(sample.y <= bounds.ymax);
-        approx::assert_abs_diff_eq!(uniform_2d.logpdf(&sample, &bounds), -1.1394343, epsilon=f32::EPSILON);
-    }
+    let true_mu = dvector![-1.5, 3.2];
+    let true_cov = dmatrix![1.,-3./5.;-3./5.,2.];
+    let params = (true_mu.clone(), true_cov.clone());
 
-    assert_eq!(uniform_2d.logpdf(&types_2d::Point { x: -1., y: 0.}, &bounds), -f32::INFINITY);
+    let samples = (0..50000)
+        .map(|_| mvnormal.random(&mut rng, &params).data.as_vec().to_vec())
+        .collect::<Vec<Vec<f32>>>();
+    let json = serde_json::to_string(&samples).unwrap();
+    write("../mvnormal.json", json).unwrap();
+
+    let sample_xs = samples.iter().map(|p| p[0]).collect::<Vec<f32>>();
+    let sample_ys = samples.iter().map(|p| p[1]).collect::<Vec<f32>>();
+    let e_mu_x = mean(&sample_xs);
+    let e_mu_y = mean(&sample_ys);
+    let e_mu = dvector![e_mu_x, e_mu_y];
+    approx::assert_abs_diff_eq!(e_mu, true_mu, epsilon = 0.02);
+
+    let e_var_x = variance(&sample_xs, None);
+    let e_var_y = variance(&sample_ys, None);
+    let e_cov_xy = sample_xs.iter().zip(sample_ys)
+        .map(|(x,y)| (x - true_mu[0])*(y - true_mu[1]))
+        .sum::<f32>() / samples.len() as f32;
+    let e_cov = dmatrix![e_var_x, e_cov_xy; e_cov_xy, e_var_y];
+    approx::assert_abs_diff_eq!(e_cov, true_cov, epsilon = 0.04);
+
+    let x = dvector![1.1, 5.8];
+    let mu = dvector![1.3, 5.6];
+    let cov = dmatrix![1., -0.81; -0.81, 2.5];
+    let params = (mu, cov);
+    let logp = mvnormal.logpdf(&x, &params);
+    // approx::assert_abs_diff_eq!(logp, -2.1642100746383353, epsilon = f32::EPSILON);
 }
 
 #[test]

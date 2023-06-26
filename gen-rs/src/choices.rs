@@ -1,20 +1,20 @@
 use std::any::Any;
 use std::{ops::Index, rc::Rc};
-use crate::gfi::{Addr, ChoiceVal, ChoiceBuffer};
+use crate::gfi::{Addr, ChoiceBuffer};
 use std::collections::HashMap;
 
 
-pub struct ChoiceHashMap<V: ChoiceVal> {
+pub struct ChoiceHashMap<V: Any> {
     hmap: HashMap<Addr,Rc<V>>
 }
 
-impl<V: ChoiceVal> ChoiceHashMap<V> {
+impl<V: Any> ChoiceHashMap<V> {
     pub fn new() -> Self {
         ChoiceHashMap { hmap: HashMap::new() }
     }
 }
 
-impl<V: ChoiceVal> Index<Addr> for ChoiceHashMap<V> {
+impl<V: Any> Index<Addr> for ChoiceHashMap<V> {
     type Output = Rc<V>;
 
     fn index(&self, k: Addr) -> &Self::Output {
@@ -22,7 +22,7 @@ impl<V: ChoiceVal> Index<Addr> for ChoiceHashMap<V> {
     }
 }
 
-impl<V: ChoiceVal> Clone for ChoiceHashMap<V> {
+impl<V: Any> Clone for ChoiceHashMap<V> {
     fn clone(&self) -> Self {
         let mut choices = ChoiceHashMap::new();
         for &k in self.hmap.keys().into_iter() {
@@ -32,7 +32,9 @@ impl<V: ChoiceVal> Clone for ChoiceHashMap<V> {
     }
 }
 
-impl<V: ChoiceVal> ChoiceBuffer for ChoiceHashMap<V> {
+impl<V: Any> ChoiceBuffer for ChoiceHashMap<V> {
+    type V = V;
+
     fn has_value(&self, k: Addr) -> bool {
         self.hmap.contains_key(&k)
     }
@@ -41,7 +43,7 @@ impl<V: ChoiceVal> ChoiceBuffer for ChoiceHashMap<V> {
         (&self.hmap[&k] as &dyn Any).downcast_ref::<Rc<V>>().unwrap()
     }
 
-    fn set_value(&mut self, k: Addr, v: &Rc<impl ChoiceVal>) {
+    fn set_value(&mut self, k: Addr, v: &Rc<V>) {
         self.hmap.insert(k, Rc::clone((v as &dyn Any).downcast_ref::<Rc<V>>().unwrap()));
     }
 }

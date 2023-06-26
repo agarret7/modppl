@@ -3,14 +3,14 @@ use std::rc::Rc;
 use rand::rngs::ThreadRng;
 
 use gen_rs::{GenerativeFunction,Trace,ChoiceBuffer,ChoiceHashMap};
-use gen_rs::types_2d::{Bounds,Point};
 
 pub mod pointed;
+use pointed::types_2d::{Bounds,Point};
 use pointed::{PointedModel, DriftProposal};
 
 #[test]
 fn test_metropolis_hastings() -> std::io::Result<()> {
-    create_dir_all("data")?;
+    create_dir_all("../data")?;
 
     let mut rng = ThreadRng::default();
     const NUM_ITERS: u32 = 25000;
@@ -31,7 +31,7 @@ fn test_metropolis_hastings() -> std::io::Result<()> {
         trace = new_trace;
         let data = *trace.get_choices()["latent"];
         let json = serde_json::to_string(&data)?;
-        write(format!("data/mh_trace_{}.json", iter), json)?;
+        write(format!("../data/mh_trace_{}.json", iter), json)?;
     }
     
     Ok(())

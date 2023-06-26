@@ -4,14 +4,14 @@ use rand::rngs::ThreadRng;
 
 use gen_rs::modeling::dists::{Distribution, categorical};
 use gen_rs::{Trace,ChoiceBuffer,ChoiceHashMap};
-use gen_rs::types_2d::{Bounds,Point};
-use pointed::{PointedModel, PointedTrace};
 
 pub mod pointed;
+use pointed::types_2d::{Bounds,Point};
+use pointed::{PointedModel, PointedTrace};
 
 #[test]
 fn test_importance() -> std::io::Result<()> {
-    create_dir_all("data")?;
+    create_dir_all("../data")?;
 
     let mut rng = ThreadRng::default();
     const NUM_SAMPLES: u32 = 100000;
@@ -30,7 +30,7 @@ fn test_importance() -> std::io::Result<()> {
 
     let data = traces.iter().map(|tr| *tr.get_choices()["latent"]).collect::<Vec<Point>>();
     let json = serde_json::to_string(&data)?;
-    write("data/initial_traces.json", json)?;
+    write("../data/initial_traces.json", json)?;
 
     let probs = &log_normalized_weights.iter()
         .map(|w| (w - log_ml_estimate).exp())
@@ -42,7 +42,7 @@ fn test_importance() -> std::io::Result<()> {
     
     let data = traces.iter().map(|tr| *tr.get_choices()["latent"]).collect::<Vec<Point>>();
     let json = serde_json::to_string(&data)?;
-    write("data/resampled_traces.json", json)?;
+    write("../data/resampled_traces.json", json)?;
 
     Ok(())
 }

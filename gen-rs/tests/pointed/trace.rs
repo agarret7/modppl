@@ -1,9 +1,16 @@
 use std::rc::Rc;
 use gen_rs::{
-    types_2d::{Bounds,Point},
     ChoiceBuffer, Trace, ChoiceHashMap
 };
+use super::types_2d::{Point,Bounds};
 
+
+// a PointedTrace is a simple execution trace of a model
+// whose random variables are well-represented by a (flat)
+// hashmap from addresses to values.
+
+// This mostly covers models that don't utilize splicing,
+// including recursive filters.
 pub struct PointedTrace {
     args: Rc<Bounds>,
     choices: ChoiceHashMap<Point>,

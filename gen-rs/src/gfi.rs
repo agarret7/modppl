@@ -5,12 +5,13 @@ use std::any::Any;
 
 
 pub type Addr = &'static str;
-pub trait ChoiceVal : Any { }
 
 pub trait ChoiceBuffer : Clone + Index<Addr> {
+    type V: Any;
+
     fn has_value(&self, k: Addr) -> bool;
-    fn get_value(&self, k: Addr) -> &Rc<impl ChoiceVal>;
-    fn set_value(&mut self, k: Addr, v: &Rc<impl ChoiceVal>);
+    fn get_value(&self, k: Addr) -> &Rc<Self::V>;
+    fn set_value(&mut self, k: Addr, v: &Rc<Self::V>);
 }
 
 pub trait Trace {

@@ -2,11 +2,11 @@ use std::rc::Rc;
 use std::any::Any;
 use rand::rngs::ThreadRng;
 use gen_rs::{
-    types_2d::{Bounds,Point},
     modeling::dists::{self, Distribution},
     GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer
 };
-pub use super::trace::PointedTrace;
+use super::types_2d::{Point,Bounds};
+use super::trace::PointedTrace;
 
 
 pub struct DriftProposal {
@@ -74,12 +74,6 @@ impl GenerativeFunction for DriftProposal {
     }
 
     fn update(&self, trace: Rc<PointedTrace>, _: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Point>) {
-        // this is wrong, but we don't call update on this GF.
-        let new_trace = PointedTrace::new(
-            trace.get_args(),
-            trace.get_choices(),
-            trace.get_score()
-        );
-        (new_trace, ChoiceHashMap::new())
+        panic!("not implemented")
     }
 }

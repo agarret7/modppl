@@ -2,11 +2,11 @@ use std::rc::Rc;
 use std::any::Any;
 use rand::rngs::ThreadRng;
 use gen_rs::{
-    types_2d::{Bounds,Point},
     modeling::dists::{self, Distribution},
     GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer
 };
-pub use super::trace::PointedTrace;
+use super::types_2d::{Point,Bounds,uniform_2d};
+use super::trace::PointedTrace;
 
 
 pub struct PointedModel {
@@ -20,7 +20,7 @@ impl GenerativeFunction for PointedModel {
     type U = PointedTrace;
 
     fn simulate(&self, rng: &mut ThreadRng, bounds: Rc<Self::X>) -> Self::U {
-        let latent = dists::uniform_2d.random(rng, &bounds);
+        let latent = uniform_2d.random(rng, &bounds);
         let obs = Point {
             x: dists::normal.random(rng, &(latent.x, self.obs_std)),
             y: dists::normal.random(rng, &(latent.y, self.obs_std))
@@ -42,9 +42,9 @@ impl GenerativeFunction for PointedModel {
                 .downcast_ref::<Rc<Point>>()
                 .unwrap()
                 .clone();
-            weight += dists::uniform_2d.logpdf(&latent_choice, &bounds);
+            weight += uniform_2d.logpdf(&latent_choice, &bounds);
         } else {
-            latent_choice = Rc::new(dists::uniform_2d.random(rng, &bounds));
+            latent_choice = Rc::new(uniform_2d.random(rng, &bounds));
         }
         choices.set_value("latent", &latent_choice);
 
@@ -69,13 +69,11 @@ impl GenerativeFunction for PointedModel {
     }
 
     fn propose(&self, _: &mut ThreadRng, _: Rc<Self::X>) -> (ChoiceHashMap<Point>, f32) {
-        // this is wrong, but we don't call propose on this GF.
-        (ChoiceHashMap::new(), 0.)
+        panic!("not implemented")
     }
 
     fn assess(&self, _: &mut ThreadRng, _: Rc<Self::X>, _: impl ChoiceBuffer) -> f32 {
-        // this is wrong, but we don't call assess on this GF.
-        return 0.
+        panic!("not implemented")
     }
 
     fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Point>) {
@@ -93,9 +91,9 @@ impl GenerativeFunction for PointedModel {
                 .downcast_ref::<Rc<Point>>()
                 .unwrap()
                 .clone();
-            new_score = new_score - dists::uniform_2d.logpdf(&prev_choices["latent"], &bounds)
+            new_score = new_score - uniform_2d.logpdf(&prev_choices["latent"], &bounds)
         }
-        new_score = new_score + dists::uniform_2d.logpdf(&latent_choice, &bounds);
+        new_score = new_score + uniform_2d.logpdf(&latent_choice, &bounds);
         new_choices.set_value("latent", &latent_choice);
 
         let mut obs_choice = prev_choices["obs"].clone();
