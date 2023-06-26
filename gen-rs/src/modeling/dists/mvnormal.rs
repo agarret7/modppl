@@ -21,12 +21,12 @@ impl Distribution<DVector<f64>,(DVector<f64>,DMatrix<f64>)> for MvNormal {
     fn random(&self, rng: &mut ThreadRng, params: &(DVector<f64>,DMatrix<f64>)) -> DVector<f64> {
         let (mu, cov) = params;
         let transform: DMatrix<f64>;
-        let decomp = cov.clone().symmetric_eigen();
         match cov.clone().cholesky() {
             Some(c) => {
                 transform = c.l();
             },
             None => {
+                let decomp = cov.clone().symmetric_eigen();
                 transform = decomp.eigenvectors * DMatrix::from_diagonal(&decomp.eigenvalues.map(|v| v.sqrt()));
             }
         }

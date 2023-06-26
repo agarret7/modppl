@@ -96,7 +96,21 @@ fn test_mvnormal() {
     let cov = dmatrix![1., -0.81; -0.81, 2.5];
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, &params);
-    // approx::assert_abs_diff_eq!(logp, -2.1642100746383353, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -2.1642100746383357, epsilon = f64::EPSILON);
+
+    let x = dvector![30.1, -46.8];
+    let mu = dvector![0., 6.];
+    let cov = dmatrix![496., 0.13; 0.13, 500.];
+    let params = (mu, cov);
+    let logp = mvnormal.logpdf(&x, &params);
+    approx::assert_abs_diff_eq!(logp, -11.750458919763666, epsilon = f64::EPSILON);
+
+    let x = dvector![1.2, 5.1, -7.8];
+    let mu = dvector![1.4, 5.0, -7.4];
+    let cov = dmatrix![1., 0.1, 0.9; 0.1, 1.3, 0.4; 0.9, 0.4, 1.75];
+    let params = (mu, cov);
+    let logp = mvnormal.logpdf(&x, &params);
+    approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = f64::EPSILON);
 }
 
 #[test]
