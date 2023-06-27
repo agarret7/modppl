@@ -1,6 +1,6 @@
 # gen-rs
 
-This library contains highly-experimental explorations of probabilistic programming interfaces (and in particular the Generative Function Interface as specified in Marco Cusumano-Towner's thesis) via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as Gen.jl, GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. You should probably prefer one of those (unless smote and/or tail re-cursed).
+This library contains highly-experimental explorations of probabilistic programming interfaces (and in particular the Generative Function Interface as specified in Marco Cusumano-Towner's thesis) via "self-specializing SMC" in Rust. This was heavily inspired by GenTL, and much more fully-featured projects in the OpenGen ecosystem such as Gen.jl, GenParticleFilters, SMCP3, 3DP3, and GenJax. You should probably prefer one of those (unless tail re-cursed).
 
 
 ## Modeling and Inference Gallery

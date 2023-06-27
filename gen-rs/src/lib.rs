@@ -1,5 +1,6 @@
 #![feature(return_position_impl_trait_in_trait)]
 #![feature(associated_type_defaults)]
+#![feature(anonymous_lifetime_in_impl_trait)]
 
 pub mod gfi;
 pub mod choices;

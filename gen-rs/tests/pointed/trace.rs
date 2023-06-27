@@ -12,14 +12,14 @@ use super::types_2d::{Point,Bounds};
 // This mostly covers models that don't utilize splicing,
 // including recursive filters.
 pub struct PointedTrace {
-    args: Rc<Bounds>,
+    args: Bounds,
     choices: ChoiceHashMap<Point>,
     score: f64
 }
 
 impl PointedTrace {
     pub fn new(
-        args: Rc<Bounds>,
+        args: Bounds,
         choices: ChoiceHashMap<Point>,
         score: f64
     ) -> PointedTrace {
@@ -36,8 +36,8 @@ impl Trace for PointedTrace {
     type X = Bounds;
     type T = Point;
 
-    fn get_args(&self) -> Rc<Self::X> {
-        self.args.clone()
+    fn get_args(&self) -> &Self::X {
+        &self.args
     }
 
     fn get_choices(&self) -> ChoiceHashMap<Point> {
@@ -47,8 +47,8 @@ impl Trace for PointedTrace {
         choices
     }
 
-    fn get_retval(&self) -> Rc<Self::T> {
-        self.choices["obs"].clone()
+    fn get_retval(&self) -> &Self::T {
+        &self.choices["obs"]
     }
 
     fn get_score(&self) -> f64 {

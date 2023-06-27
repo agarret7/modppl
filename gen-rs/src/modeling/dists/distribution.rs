@@ -6,6 +6,6 @@ pub fn u01(rng: &mut ThreadRng) -> f64 {
 }
 
 pub trait Distribution<T,U> {
-    fn logpdf(&self, x: &T, params: &U) -> f64;
-    fn random(&self, rng: &mut ThreadRng, params: &U) -> T;
+    fn logpdf(&self, x: &T, params: U) -> f64;
+    fn random(&self, rng: &mut ThreadRng, params: U) -> T;
 }
