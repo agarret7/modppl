@@ -1,5 +1,7 @@
 # gen-rs
 
+![status](https://github.com/agarret7/gen-rs/actions/workflows/test.yml/badge.svg)
+
 This library contains highly-experimental explorations of probabilistic programming interfaces (and in particular the Generative Function Interface [GFI] as specified in [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)) via "self-specializing SMC" in Rust.
 
 
