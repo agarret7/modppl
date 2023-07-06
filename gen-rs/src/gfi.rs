@@ -43,8 +43,9 @@ pub trait GenerativeFunction {
 }
 
 
-// TODO: extend the semantics to support per-argument diffs
-// (likely requires accepting args as a statically-sized vector)
+// TODO: extend the semantics to support per-argument diffs. This is challenging. See:
+// - https://soasis.org/posts/a-mirror-for-rust-a-plan-for-generic-compile-time-introspection-in-rust/#variadics-do-not-exist-in-rust 
+// - https://internals.rust-lang.org/t/analysis-pre-rfc-variadic-generics-in-rust/13879
 #[derive(Debug,Clone)]
 pub enum GfDiff {
     NoChange,
