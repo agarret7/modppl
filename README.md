@@ -5,9 +5,9 @@
 This library contains highly-experimental explorations of probabilistic programming via "self-specializing SMC" in Rust (and in particular a few reference implementations of models implementing the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)).
 
 
-## Modeling and Inference Gallery
+## Inference Gallery
 
-Regenerate visualizations with:
+Generate visualizations with:
 ```shell
 python -m venv venv && activate venv/bin/active && pip install matplotlib
 cargo test && python visualization/visualizer.py
