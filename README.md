@@ -9,7 +9,7 @@ This library contains highly-experimental explorations of probabilistic programm
 
 Generate visualizations with:
 ```shell
-python -m venv venv && activate venv/bin/active && pip install matplotlib
+python -m venv venv && activate venv/bin/activate && pip install matplotlib
 cargo test && python visualization/visualizer.py
 ```
 
