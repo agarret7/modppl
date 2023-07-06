@@ -1,4 +1,5 @@
 use rand::rngs::ThreadRng;
+use approx;
 use super::{Distribution,u01};
 
 
@@ -7,7 +8,8 @@ pub const categorical: Categorical = Categorical { };
 
 impl Distribution<usize,Vec<f64>> for Categorical {
     fn logpdf(&self, x: &usize, probs: Vec<f64>) -> f64 {
-        return if (*x as i32) > 0 && (*x as i32) <= probs.len() as i32 {
+        approx::assert_abs_diff_eq!(probs.iter().sum::<f64>(), 1.0, epsilon = 1e-8);
+        return if *x < probs.len() {
             probs[*x].ln()
         } else {
             -f64::INFINITY
@@ -15,6 +17,7 @@ impl Distribution<usize,Vec<f64>> for Categorical {
     }
 
     fn random(&self, rng: &mut ThreadRng, probs: Vec<f64>) -> usize {
+        approx::assert_abs_diff_eq!(probs.iter().sum::<f64>(), 1.0, epsilon = 1e-8);
         let u = u01(rng);
         let mut t = 0.;
         let mut x: usize = 0;

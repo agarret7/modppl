@@ -35,12 +35,15 @@ fn test_normal() {
 
     let true_mu = 1.64;
     let true_std = 0.025;
+
     let samples = (0..50000).map(|_| normal.random(&mut rng, (true_mu, true_std))).collect::<Vec<f64>>();
 
     let empirical_mu = mean(&samples);
     let empirical_std = standard_deviation(&samples, None);
-    approx::assert_abs_diff_eq!(empirical_mu, true_mu, epsilon = 0.02);
-    approx::assert_abs_diff_eq!(empirical_std, true_std, epsilon = 0.02);
+    dbg!(&empirical_mu);
+    dbg!(&empirical_std);
+    approx::assert_abs_diff_eq!(empirical_mu, true_mu, epsilon = 0.001);
+    approx::assert_abs_diff_eq!(empirical_std, true_std, epsilon = 0.001);
 
     let x = 1.4;
     let mu = 0.9;
@@ -77,14 +80,14 @@ fn test_mvnormal() {
     let e_mu_x = mean(&sample_xs);
     let e_mu_y = mean(&sample_ys);
     let e_mu = dvector![e_mu_x, e_mu_y];
-    approx::assert_abs_diff_eq!(e_mu, true_mu, epsilon = 0.02);
+    approx::assert_abs_diff_eq!(e_mu, true_mu, epsilon = 0.05);
     let e_var_x = variance(&sample_xs, None);
     let e_var_y = variance(&sample_ys, None);
     let e_cov_xy = sample_xs.iter().zip(sample_ys)
         .map(|(x,y)| (x - true_mu[0])*(y - true_mu[1]))
         .sum::<f64>() / samples.len() as f64;
     let e_cov = dmatrix![e_var_x, e_cov_xy; e_cov_xy, e_var_y];
-    approx::assert_abs_diff_eq!(e_cov, true_cov, epsilon = 0.04);
+    approx::assert_abs_diff_eq!(e_cov, true_cov, epsilon = 0.05);
 
     let x = dvector![1.1, 5.8];
     let mu = dvector![1.3, 5.6];

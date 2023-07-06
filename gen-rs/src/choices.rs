@@ -12,6 +12,14 @@ impl<V: Any> ChoiceHashMap<V> {
     pub fn new() -> Self {
         ChoiceHashMap { hmap: HashMap::new() }
     }
+
+    pub fn from_hashmap(hmap: HashMap<Addr,V>) -> Self {
+        let mut cmap = ChoiceHashMap::new();
+        for (addr, val) in hmap.into_iter() {
+            cmap.set_value(addr, &Rc::new(val));
+        }
+        cmap
+    }
 }
 
 impl<V: Any> Index<Addr> for ChoiceHashMap<V> {
@@ -40,7 +48,11 @@ impl<V: Any> ChoiceBuffer for ChoiceHashMap<V> {
     }
 
     fn get_value(&self, k: Addr) -> &Rc<V> {
-        (&self.hmap[&k] as &dyn Any).downcast_ref::<Rc<V>>().unwrap()
+        if self.has_value(k) {
+            (&self.hmap[&k] as &dyn Any).downcast_ref::<Rc<V>>().unwrap()
+        } else {
+            panic!("no value found at address: {}", k);
+        }
     }
 
     fn set_value(&mut self, k: Addr, v: &Rc<V>) {

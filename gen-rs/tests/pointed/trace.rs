@@ -5,12 +5,6 @@ use gen_rs::{
 use super::types_2d::{Point,Bounds};
 
 
-// a PointedTrace is a simple execution trace of a model
-// whose random variables are well-represented by a (flat)
-// hashmap from addresses to values.
-
-// This mostly covers models that don't utilize splicing,
-// including recursive filters.
 pub struct PointedTrace {
     args: Bounds,
     choices: ChoiceHashMap<Point>,
@@ -29,6 +23,14 @@ impl PointedTrace {
             score: score
         }
     }
+
+    pub fn set_latent(&mut self, value: &Rc<Point>) {
+        self.choices.set_value("latent", value);
+    }
+
+    pub fn set_obs(&mut self, value: &Rc<Point>) {
+        self.choices.set_value("obs", value);
+    }
 }
 
 impl Trace for PointedTrace {
@@ -41,10 +43,7 @@ impl Trace for PointedTrace {
     }
 
     fn get_choices(&self) -> ChoiceHashMap<Point> {
-        let mut choices = ChoiceHashMap::new();
-        choices.set_value("latent", &Rc::clone(&self.choices["latent"]));
-        choices.set_value("obs", &Rc::clone(&self.choices["obs"]));
-        choices
+        self.choices.clone()
     }
 
     fn get_retval(&self) -> &Self::T {
@@ -53,6 +52,10 @@ impl Trace for PointedTrace {
 
     fn get_score(&self) -> f64 {
         self.score
+    }
+
+    fn set_score(&mut self, new_score: f64) {
+        self.score = new_score;
     }
 
 }

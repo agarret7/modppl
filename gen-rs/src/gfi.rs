@@ -1,18 +1,19 @@
 use rand::rngs::ThreadRng;
-use std::ops::Index;
 use std::rc::Rc;
 use std::any::Any;
 
 
 pub type Addr = &'static str;
 
-pub trait ChoiceBuffer : Clone + Index<Addr> {
+
+pub trait ChoiceBuffer : Clone {
     type V: Any;
 
     fn has_value(&self, k: Addr) -> bool;
     fn get_value(&self, k: Addr) -> &Rc<Self::V>;
     fn set_value(&mut self, k: Addr, v: &Rc<Self::V>);
 }
+
 
 pub trait Trace {
     type X;
@@ -22,7 +23,9 @@ pub trait Trace {
     fn get_retval(&self) -> &Self::T;
     fn get_choices(&self) -> impl ChoiceBuffer;
     fn get_score(&self) -> f64;
+    fn set_score(&mut self, new_score: f64);
 }
+
 
 pub trait GenerativeFunction {
     type X;
@@ -36,5 +39,15 @@ pub trait GenerativeFunction {
     fn assess(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> f64;
 
     // current assumption: no changes to input arguments
-    fn update(&self, trace: Rc<Self::U>, constraints: impl ChoiceBuffer) -> (Self::U, impl ChoiceBuffer);
+    fn update(&self, rng: &mut ThreadRng, trace: &mut Self::U, args: Self::X, diff: GfDiff, constraints: impl ChoiceBuffer) -> impl ChoiceBuffer;
+}
+
+
+// TODO: extend the semantics to support per-argument diffs
+// (likely requires accepting args as a statically-sized vector)
+#[derive(Debug,Clone)]
+pub enum GfDiff {
+    NoChange,
+    Unknown,
+    Extend
 }

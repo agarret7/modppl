@@ -1,10 +1,10 @@
-use std::rc::Rc;
+use std::rc::{Weak,Rc};
 use std::any::Any;
 use rand::rngs::ThreadRng;
 use nalgebra::DMatrix;
 use gen_rs::{
     modeling::dists::{self, Distribution},
-    GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer
+    GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer, GfDiff
 };
 use super::types_2d::{Point,Bounds};
 use super::trace::PointedTrace;
@@ -16,12 +16,12 @@ pub struct DriftProposal {
 
 impl GenerativeFunction for DriftProposal {
 
-    type X = (Rc<Self::U>, Bounds);
+    type X = (Weak<Self::U>, Bounds);
     type T = Point;
     type U = PointedTrace;
 
     fn simulate(&self, rng: &mut ThreadRng, args: Self::X) -> Self::U {
-        let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
+        let (prev_choices, bounds) = (args.0.upgrade().unwrap().get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
         choices.set_value("obs", &prev_choices["obs"]);
 
@@ -32,7 +32,7 @@ impl GenerativeFunction for DriftProposal {
     }
 
     fn generate(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> Self::U {
-        let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
+        let (prev_choices, bounds) = (args.0.upgrade().unwrap().get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
         choices.set_value("obs", &prev_choices["obs"]);
 
@@ -54,7 +54,7 @@ impl GenerativeFunction for DriftProposal {
     }
 
     fn propose(&self, rng: &mut ThreadRng, args: Self::X) -> (ChoiceHashMap<Point>, f64) {
-        let prev_latent = args.0.get_choices()["latent"].clone();
+        let prev_latent = args.0.upgrade().unwrap().get_choices()["latent"].clone();
         let new_latent = self.simulate(rng, args).get_choices()["latent"].clone();
         let mut new_choices = ChoiceHashMap::new();
         new_choices.set_value("latent", &new_latent);
@@ -66,7 +66,7 @@ impl GenerativeFunction for DriftProposal {
         self.generate(rng, args, constraints).get_score()
     }
 
-    fn update(&self, _: Rc<PointedTrace>, _: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Point>) {
+    fn update(&self, _: &mut ThreadRng, _: &mut PointedTrace, _: Self::X, _: GfDiff, _: impl ChoiceBuffer) -> ChoiceHashMap<Point> {
         panic!("not implemented")
     }
 }

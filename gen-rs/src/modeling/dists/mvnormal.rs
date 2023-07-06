@@ -30,7 +30,7 @@ impl Distribution<DVector<f64>,(&DVector<f64>,&DMatrix<f64>)> for MvNormal {
                 transform = decomp.eigenvectors * DMatrix::from_diagonal(&decomp.eigenvalues.map(|v| v.sqrt()));
             }
         }
-        let samples = transform * &mu.map(|m| normal.random(rng, (0.,1.))) + mu;
+        let samples = transform * &mu.map(|_| normal.random(rng, (0.,1.))) + mu;
         samples
     }
 }

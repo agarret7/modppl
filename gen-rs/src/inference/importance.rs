@@ -1,5 +1,4 @@
 use rand::rngs::ThreadRng;
-use std::rc::Rc;
 use crate::{
     mathutils::logsumexp,
     Trace,
