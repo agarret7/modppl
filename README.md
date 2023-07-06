@@ -2,12 +2,12 @@
 
 ![status](https://github.com/agarret7/gen-rs/actions/workflows/test.yml/badge.svg)
 
-This library contains highly-experimental (**pre-alpha**) explorations of probabilistic programming via "self-specializing Sequential Monte Carlo (SMC)" in Rust. Right now it consists of a few particular reference implementations of models implementing the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)) and a few inference procedures.
+This library contains highly-experimental (**pre-alpha**) explorations of probabilistic programming via "self-specializing Sequential Monte Carlo (SMC)" in Rust. Right now it consists of a few reference implementations of models implementing the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)) and a set of basic inference procedures.
 
 
 ## Inference Features
 
-- Importance sampling
+- Importance Sampling
 - Proposal-based MCMC
 - Particle Filtering
 
