@@ -9,6 +9,14 @@ pub type Addr = &'static str;
 pub trait ChoiceBuffer : Clone {
     type V: Any;
 
+    // Q: can we avoid compile-time choice value types?
+    // `Self::V` causes an ugly runtime motif in GF implementations:
+
+    //     let obs_choice = (constraints.get_value("obs") as &dyn Any)
+    //         .downcast_ref::<Rc<V>>()
+    //         .unwrap()
+    //         .clone();
+
     fn has_value(&self, k: Addr) -> bool;
     fn get_value(&self, k: Addr) -> &Rc<Self::V>;
     fn set_value(&mut self, k: Addr, v: &Rc<Self::V>);
@@ -38,12 +46,17 @@ pub trait GenerativeFunction {
     fn propose(&self, rng: &mut ThreadRng, args: Self::X) -> (impl ChoiceBuffer, f64);
     fn assess(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> f64;
 
-    // current assumption: no changes to input arguments
-    fn update(&self, rng: &mut ThreadRng, trace: &mut Self::U, args: Self::X, diff: GfDiff, constraints: impl ChoiceBuffer) -> impl ChoiceBuffer;
+    fn update(&self,
+        rng: &mut ThreadRng,
+        trace: &mut Self::U,
+        args: Self::X,
+        diff: GfDiff,
+        constraints: impl ChoiceBuffer  // forward choices
+    ) -> impl ChoiceBuffer;             // backward choices
 }
 
 
-// TODO: extend the semantics to support per-argument diffs. This is challenging. See:
+// TODO: extend the semantics to support variable-length input and per-argument diffs. This is challenging. See:
 // - https://soasis.org/posts/a-mirror-for-rust-a-plan-for-generic-compile-time-introspection-in-rust/#variadics-do-not-exist-in-rust 
 // - https://internals.rust-lang.org/t/analysis-pre-rfc-variadic-generics-in-rust/13879
 #[derive(Debug,Clone)]
