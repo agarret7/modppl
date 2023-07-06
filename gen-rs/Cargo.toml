@@ -7,7 +7,9 @@ edition = "2021"
 
 [dependencies]
 approx = "0.5.1"
+common_macros = "0.1.1"
 itertools-num = "0.1.3"
+nalgebra = {features = ["serde-serialize"], version="0.32.2"}
 proc-macro2 = "1.0.63"
 quote = "1.0.28"
 rand = "0.8.5"

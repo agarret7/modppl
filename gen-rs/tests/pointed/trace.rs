@@ -1,26 +1,35 @@
 use std::rc::Rc;
 use gen_rs::{
-    types_2d::{Bounds,Point},
     ChoiceBuffer, Trace, ChoiceHashMap
 };
+use super::types_2d::{Point,Bounds};
+
 
 pub struct PointedTrace {
-    args: Rc<Bounds>,
+    args: Bounds,
     choices: ChoiceHashMap<Point>,
-    score: f32
+    score: f64
 }
 
 impl PointedTrace {
     pub fn new(
-        args: Rc<Bounds>,
+        args: Bounds,
         choices: ChoiceHashMap<Point>,
-        score: f32
+        score: f64
     ) -> PointedTrace {
         PointedTrace {
             args: args,
             choices: choices,
             score: score
         }
+    }
+
+    pub fn set_latent(&mut self, value: &Rc<Point>) {
+        self.choices.set_value("latent", value);
+    }
+
+    pub fn set_obs(&mut self, value: &Rc<Point>) {
+        self.choices.set_value("obs", value);
     }
 }
 
@@ -29,23 +38,24 @@ impl Trace for PointedTrace {
     type X = Bounds;
     type T = Point;
 
-    fn get_args(&self) -> Rc<Self::X> {
-        self.args.clone()
+    fn get_args(&self) -> &Self::X {
+        &self.args
     }
 
     fn get_choices(&self) -> ChoiceHashMap<Point> {
-        let mut choices = ChoiceHashMap::new();
-        choices.set_value("latent", &Rc::clone(&self.choices["latent"]));
-        choices.set_value("obs", &Rc::clone(&self.choices["obs"]));
-        choices
+        self.choices.clone()
     }
 
-    fn get_retval(&self) -> Rc<Self::T> {
-        self.choices["obs"].clone()
+    fn get_retval(&self) -> &Self::T {
+        &self.choices["obs"]
     }
 
-    fn get_score(&self) -> f32 {
+    fn get_score(&self) -> f64 {
         self.score
+    }
+
+    fn set_score(&mut self, new_score: f64) {
+        self.score = new_score;
     }
 
 }

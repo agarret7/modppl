@@ -1,40 +1,38 @@
-use std::rc::Rc;
+use std::rc::{Weak,Rc};
 use std::any::Any;
 use rand::rngs::ThreadRng;
+use nalgebra::DMatrix;
 use gen_rs::{
-    types_2d::{Bounds,Point},
     modeling::dists::{self, Distribution},
-    GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer
+    GenerativeFunction, Trace, ChoiceHashMap, ChoiceBuffer, GfDiff
 };
-pub use super::trace::PointedTrace;
+use super::types_2d::{Point,Bounds};
+use super::trace::PointedTrace;
 
 
 pub struct DriftProposal {
-    pub drift_std: f32
+    pub drift_cov: DMatrix<f64>
 }
 
 impl GenerativeFunction for DriftProposal {
 
-    type X = (Rc<Self::U>, Rc<Bounds>);
+    type X = (Weak<Self::U>, Bounds);
     type T = Point;
     type U = PointedTrace;
 
-    fn simulate(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> Self::U {
-        let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
+    fn simulate(&self, rng: &mut ThreadRng, args: Self::X) -> Self::U {
+        let (prev_choices, bounds) = (args.0.upgrade().unwrap().get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
         choices.set_value("obs", &prev_choices["obs"]);
 
-        let new_latent = Rc::new(Point {
-            x: dists::normal.random(rng, &(prev_choices["latent"].x, self.drift_std)),
-            y: dists::normal.random(rng, &(prev_choices["latent"].y, self.drift_std))
-        });
+        let new_latent = Rc::new(dists::mvnormal.random(rng, (&prev_choices["latent"], &self.drift_cov)));
         choices.set_value("latent", &new_latent);
 
         PointedTrace::new(bounds, choices, 0.)
     }
 
-    fn generate(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> Self::U {
-        let (prev_choices, bounds) = (args.0.get_choices() as ChoiceHashMap<Point>, args.1.clone());
+    fn generate(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> Self::U {
+        let (prev_choices, bounds) = (args.0.upgrade().unwrap().get_choices() as ChoiceHashMap<Point>, args.1.clone());
         let mut choices = ChoiceHashMap::new();
         choices.set_value("obs", &prev_choices["obs"]);
 
@@ -45,13 +43,9 @@ impl GenerativeFunction for DriftProposal {
                 .downcast_ref::<Rc<Point>>()
                 .unwrap()
                 .clone();
-            weight = dists::normal.logpdf(&new_latent.x, &(prev_choices["latent"].x, self.drift_std))
-                + dists::normal.logpdf(&new_latent.y, &(prev_choices["latent"].y, self.drift_std));
+            weight = dists::mvnormal.logpdf(&new_latent, (&prev_choices["latent"], &self.drift_cov));
         } else {
-            new_latent = Rc::new(Point {
-                x: dists::normal.random(rng, &(prev_choices["latent"].x, self.drift_std)),
-                y: dists::normal.random(rng, &(prev_choices["latent"].y, self.drift_std))
-            });
+            new_latent = Rc::new(dists::mvnormal.random(rng, (&prev_choices["latent"], &self.drift_cov)));
             weight = 0.
         }
         choices.set_value("latent", &new_latent);
@@ -59,27 +53,20 @@ impl GenerativeFunction for DriftProposal {
         PointedTrace::new(bounds, choices, weight)
     }
 
-    fn propose(&self, rng: &mut ThreadRng, args: Rc<Self::X>) -> (ChoiceHashMap<Point>, f32) {
-        let prev_latent = args.0.get_choices()["latent"].clone();
+    fn propose(&self, rng: &mut ThreadRng, args: Self::X) -> (ChoiceHashMap<Point>, f64) {
+        let prev_latent = args.0.upgrade().unwrap().get_choices()["latent"].clone();
         let new_latent = self.simulate(rng, args).get_choices()["latent"].clone();
         let mut new_choices = ChoiceHashMap::new();
         new_choices.set_value("latent", &new_latent);
-        let weight = dists::normal.logpdf(&prev_latent.x, &(new_latent.x, self.drift_std))
-            + dists::normal.logpdf(&prev_latent.y, &(new_latent.y, self.drift_std));
+        let weight = dists::mvnormal.logpdf(&prev_latent, (&new_latent, &self.drift_cov));
         (new_choices, weight)
     }
 
-    fn assess(&self, rng: &mut ThreadRng, args: Rc<Self::X>, constraints: impl ChoiceBuffer) -> f32 {
+    fn assess(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> f64 {
         self.generate(rng, args, constraints).get_score()
     }
 
-    fn update(&self, trace: Rc<PointedTrace>, _: impl ChoiceBuffer) -> (Self::U, ChoiceHashMap<Point>) {
-        // this is wrong, but we don't call update on this GF.
-        let new_trace = PointedTrace::new(
-            trace.get_args(),
-            trace.get_choices(),
-            trace.get_score()
-        );
-        (new_trace, ChoiceHashMap::new())
+    fn update(&self, _: &mut ThreadRng, _: &mut PointedTrace, _: Self::X, _: GfDiff, _: impl ChoiceBuffer) -> ChoiceHashMap<Point> {
+        panic!("not implemented")
     }
 }

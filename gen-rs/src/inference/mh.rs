@@ -1,45 +1,64 @@
-use std::rc::Rc;
+use std::rc::{Rc,Weak};
+use approx;
 use rand::{Rng, rngs::ThreadRng};
 use rand::distributions::Uniform;
-use crate::{Trace,GenerativeFunction};
+use crate::{Trace,GenerativeFunction,GfDiff::NoChange};
 
 
-pub fn metropolis_hastings<X,Y,T,U: Trace<T=T>>(
+pub fn metropolis_hastings<X: Copy,Y: Copy,T,U: Trace<X=X,T=T>>(
     rng: &mut ThreadRng,
     model: &impl GenerativeFunction<X=X,T=T,U=U>,
-    trace: Rc<U>,
-    proposal: &impl GenerativeFunction<X=(Rc<U>,Rc<Y>),U=U>,
-    proposal_args: Rc<Y>,
-) -> (Rc<U>, bool) {
-    let proposal_args_forward = (trace.clone(), proposal_args.clone());
-    let (fwd_choices, fwd_weight) = proposal.propose(rng, Rc::new(proposal_args_forward));
+    trace: U,
+    proposal: &impl GenerativeFunction<X=(Weak<U>,Y),U=U>,
+    proposal_args: Y
+) -> (U, bool) {
+    let bwd_choices = trace.get_choices();
+    let old_score = trace.get_score();
 
-    let (new_trace, discard) = model.update(trace.clone(), fwd_choices);
-    let new_trace = Rc::new(new_trace);
+    let trace = Rc::new(trace);
+    let proposal_args_forward = (Rc::downgrade(&trace), proposal_args);
+    let (fwd_choices, fwd_weight) = proposal.propose(rng, proposal_args_forward);
+    let mut trace = Rc::into_inner(trace).unwrap();
 
-    let proposal_args_backward = (new_trace.clone(), proposal_args.clone());
-    let bwd_weight = proposal.assess(rng, Rc::new(proposal_args_backward), discard);
+    let args = *trace.get_args();
+    let discard = model.update(rng, &mut trace, args, NoChange, fwd_choices);
+    let new_score = trace.get_score();
 
-    // dbg!(trace.get_score());
+    let trace = Rc::new(trace);
+    let proposal_args_backward = (Rc::downgrade(&trace), proposal_args);
+    let bwd_weight = proposal.assess(rng, proposal_args_backward, discard);
+    let mut trace = Rc::into_inner(trace).unwrap();
+
+    // dbg!(old_score);
     // dbg!(fwd_weight);
     // dbg!(bwd_weight);
-    // dbg!(new_trace.get_score());
+    // dbg!(new_score);
 
-    let alpha = new_trace.get_score() - fwd_weight + bwd_weight - trace.get_score();
-
-    if rng.sample(Uniform::new(0_f32, 1_f32)).ln() < alpha {
-        (new_trace, true)
+    let alpha = new_score - fwd_weight + bwd_weight - old_score;
+    if rng.sample(Uniform::new(0_f64, 1_f64)).ln() < alpha {
+        (trace, true)
     } else {
+        model.update(rng, &mut trace, args, NoChange, bwd_choices);
+        let revert_score: f64;
+        if new_score == f64::NEG_INFINITY {
+            revert_score = old_score;
+        } else {
+            revert_score = trace.get_score();
+        }
+        trace.set_score(revert_score);
+        approx::assert_abs_diff_eq!(trace.get_score(), old_score, epsilon = 1e-8);
         (trace, false)
     }
+    // let ret_trace = Rc::try_unwrap(if accept { new_trace } else { trace }).ok().unwrap();
+    // (ret_trace, accept)
 }
 
-pub fn mh<X,Y,T,U: Trace<T=T>>(
+pub fn mh<X: Copy,Y: Copy,T,U: Trace<X=X,T=T>>(
     rng: &mut ThreadRng,
     model: &impl GenerativeFunction<X=X,T=T,U=U>,
-    trace: Rc<U>,
-    proposal: &impl GenerativeFunction<X=(Rc<U>,Rc<Y>),U=U>,
-    proposal_args: Rc<Y>,
-) -> (Rc<U>, bool) {
+    trace: U,
+    proposal: &impl GenerativeFunction<X=(Weak<U>,Y),U=U>,
+    proposal_args: Y
+) -> (U, bool) {
     metropolis_hastings(rng, model, trace, proposal, proposal_args)
 }

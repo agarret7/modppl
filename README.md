@@ -1,24 +1,21 @@
 # gen-rs
 
-This library contains highly-experimental explorations of probabilistic programming interfaces (and in particular the Generative Function Interface as specified in Marco Cusumano-Towner's thesis) via "self-specializing SMC" in Rust. This was heavily inspired by much more fully-featured projects in the OpenGen ecosystem such as Gen.jl, GenParticleFilters, SMCP3, 3DP3, GenJax, and GenTL. You should probably prefer one of those (unless smote and/or tail re-cursed).
+This library contains highly-experimental explorations of probabilistic programming interfaces (and in particular the Generative Function Interface [GFI] as specified in [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)) via "self-specializing SMC" in Rust.
 
 
 ## Modeling and Inference Gallery
 
-TBD
+Regenerate visualizations with:
+```shell
+python -m venv venv && activate venv/bin/active && pip install matplotlib
+cargo test && python visualization/visualizer.py
+```
 
 
-## Motivation
+## Disclaimer
 
-Primarily self-edification.
+Unlike most modern ML systems, probabilistic programming doesn't require a differentiable likelihood; a fast (possibly parallelized) CPU-bound iterator is often sufficient for inference. This aligns well with Rust's principle of "fearless concurrency". However, most embodied (read: practical) modeling efforts still require extensive parameter tuning and Langevin or Hamiltonian Monte Carlo inference moves, to effectively leverage numerical gradients of the local energy landscape in top-down or supervised data processing.
 
-Unlike most modern ML systems, probabilistic programming doesn't require a differentiable likelihood; a fast (possibly parallelized) iterator is often sufficient for inference. This aligns well with Rust's principle of "fearless concurrency". However, most embodied (read: practical) modeling efforts still require extensive parameter tuning and Langevin or Hamiltonian Monte Carlo inference moves, to effectively leverage numerical gradients of the local energy landscape in top-down or supervised data processing.
+Despite Rust being a delightful experience to program in, AD support and GPU acceleration is still somewhat shaky (given the lack of first-class Rust-native tensor libraries), limiting these applications.
 
-Despite Rust being an absolutely delightful experience to program in, AD support and GPU acceleration is somewhat shaky (given the lack of first-class Rust-native tensor libraries), limiting these applications.
-
-
-## Applications
-
-As of 2023, personal physiological tracking and cybernetics. I'd love to see security-conscious applications like autonomous vehicles or bioinformatics leverage Rust's ownership system and memory-safety properties to deploy larger-scale and high-throughput statistical pipelines, but that's total speculation at this stage.
-
-Furthermore, since large-scale open-source simulation is still firmly rooted in the C/C++ (and to a lesser extent C#) world, I don't expect this to change anytime soon.
+This project was heavily inspired by [GenTL](https://github.com/OpenGen/GenTL/tree/main) and several more fully-featured projects in the OpenGen ecosystem such as [Gen.jl](https://github.com/probcomp/Gen.jl/tree/master), [GenParticleFilters](https://github.com/probcomp/GenParticleFilters.jl), [SMCP3](https://github.com/probcomp/aistats2023-smcp3), [Bayes3D](https://github.com/probcomp/bayes3d/tree/main), and GenJax. It's recommended you check out one of those before deciding whether or not to use this package.
