@@ -49,8 +49,6 @@ pub fn metropolis_hastings<X: Copy,Y: Copy,T,U: Trace<X=X,T=T>>(
         approx::assert_abs_diff_eq!(trace.get_score(), old_score, epsilon = 1e-8);
         (trace, false)
     }
-    // let ret_trace = Rc::try_unwrap(if accept { new_trace } else { trace }).ok().unwrap();
-    // (ret_trace, accept)
 }
 
 pub fn mh<X: Copy,Y: Copy,T,U: Trace<X=X,T=T>>(
