@@ -25,11 +25,11 @@ fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Rc
     let radius = f64::max(bounds.xmax - bounds.xmin, bounds.ymax - bounds.ymin) / 3.;
     let mut observations = vec![];
     for t in 0..timesteps {
-        let u = 20.*PI*(t as f64 + init_angle) as f64 / timesteps as f64;
-        let t = 2.*PI*(t as f64 + init_angle) as f64 / timesteps as f64;
+        let u = 20.*PI*(t as f64) / timesteps as f64;
+        let t = 2.*PI*(t as f64) / timesteps as f64;
         let obs = dvector![
-            center[0] + radius*t.cos() + radius/8.*u.sin(),
-            center[1] + radius*t.sin() + radius/8.*u.cos()
+            center[0] + radius*(t + init_angle).cos() + radius/8.*u.sin(),
+            center[1] + radius*(t + init_angle).sin() + radius/8.*u.cos()
         ];
         observations.push(Rc::new(obs));
     }
