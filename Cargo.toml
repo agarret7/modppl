@@ -1,4 +1,5 @@
 [workspace]
 members = [
     "gen-rs",
+    "gen-rs-macros"
 ]
