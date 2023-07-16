@@ -1,5 +1,5 @@
 [package]
-name = "gen-rs-dsl"
+name = "gen-rs-macros"
 version = "0.1.0"
 edition = "2021"
 
