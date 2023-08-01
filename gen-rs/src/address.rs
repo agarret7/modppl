@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::cell::RefCell;
 use crate::StrRec;
 
 
@@ -9,13 +10,11 @@ pub enum SplitAddr {
 }
 use SplitAddr::{Prefix,Term};
 
-
-use std::time::Instant;
+thread_local!(static RE: RefCell<Regex> = RefCell::new(Regex::new(r"^(.*?)=>(.*)$").ok().unwrap()));
 
 impl SplitAddr {
     pub fn from_addr(addr: StrRec) -> Self {
-        let re: Regex = Regex::new(r"^(.*?)=>(.*)$").ok().unwrap();
-        match re.captures(&addr) {
+        match RE.with(|re| re.borrow().captures(&addr)) {
             None => {
                 Term(addr.trim_start().trim_end())
             },

@@ -1,4 +1,5 @@
 pub mod importance;
+pub mod new_importance;
 pub mod mh;
 pub mod particle_filter;
 

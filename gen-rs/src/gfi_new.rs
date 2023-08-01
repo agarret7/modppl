@@ -5,12 +5,12 @@
 // used to represent call and choice values on subtraces.
 
 // In Gen.jl:
-// - A StaticDSL program infers optimized codegen for structs and constructors, given flat randomness.
-// - A DynamicDSL program infers optimized trie constructors, given recursive hierarchical randomness.
+// - Args StaticDSL program infers optimized codegen for structs and constructors, given flat randomness.
+// - Args DynamicDSL program infers optimized trie constructors, given recursive hierarchical randomness.
 // - The Unfold combinator infers optimized vector constructors, given sequential randomness.
 
 // Reflecting this pattern, gen-rs forgoes indirection via Choice and Trace interfaces,
-// directly exposing data type as parameterizing the domain specific language.
+// directly exposing the data type as parameterizing the domain specific language.
 
 // This expands the {Static | Dynamic} DSLs into the {struct | HashMap, Trie*, MerkleTree & Vec**} DSLs.
 // *Trie is the default when annotations are omitted.
@@ -22,17 +22,17 @@
 // Since each of these structures can implement the Index trait,
 // choices are represented as implementations of the Index trait (`impl Index`).
 
-// A user can compose languages to express an eg. "array-of-tries" pattern or
+// Args user can compose languages to express an eg. "array-of-tries" pattern or
 // "trie-of-structs"
 
 // gen!(Trie fn trie_model(x: f64, y: f64) -> bool {
 //     z ~ bernoulli(-(y - x).abs().exp());
 // });
 
-// gen!(Vec fn model(T: int) -> Vec<bool> {
+// gen!(Vec fn model(Self::Ret: int) -> Vec<bool> {
 //     let a ~ beta(2., 5.);
 //     let bs = vec![]
-//     {i} = (1..T).into_iter() {
+//     {i} = (1..Self::Ret).into_iter() {
 //         let t = i;
 //         dbg!(t);
 //         let x = {x} ~ normal(0, a);
@@ -45,128 +45,89 @@
 
 
 use rand::rngs::ThreadRng;
-use std::ops::Index;
-use std::any::Any;
 
 
 pub type StrRec = &'static str;
 
-pub trait Addr: Index<StrRec> + Sized {
-    type V;
-    fn empty() -> Self;
-    fn get_submap(&self, addr: StrRec) -> Option<&Self>;
-    fn insert_submap(&mut self, addr: StrRec, submap: Self) -> Option<Self>;
-    fn get_value(&self, addr: StrRec) -> Option<&Self::V>;
-    fn insert_value(&mut self, addr: StrRec, value: Self::V) -> Option<Self::V>;
-}
+// pub trait Argsddr: Index<StrRec> + Sized {
+//     type V;
+//     fn empty() -> Self;
+//     fn get_submap(&self, addr: StrRec) -> Option<&Self>;
+//     fn insert_submap(&mut self, addr: StrRec, submap: Self) -> Option<Self>;
+//     fn remove_submap(&mut self, addr: StrRec) -> Option<Self>;
+//     fn get_value(&self, addr: StrRec) -> Option<&Self::V>;
+//     fn insert_value(&mut self, addr: StrRec, value: Self::V) -> Option<Self::V>;
+//     fn remove_value(&mut self, addr: StrRec) -> Option<Self::V>;
+// }
 
-pub struct Sample<T>(pub T);
 
-impl<T> Index<StrRec> for Sample<T> {
-    type Output = T;
+// impl<Self::Ret> Index<StrRec> for Sample<Self::Ret> {
+//     type Ret = Self::Ret;
 
-    fn index(&self, _: StrRec) -> &Self::Output {
-        &self.0
-    }
-}
+//     fn index(&self, _: StrRec) -> &Self::Ret {
+//         &self.0
+//     }
+// }
 
-impl<T> Addr for Sample<T> {
-    type V = T;
-    fn empty() -> Self { panic!("samples can't be empty") }
-    fn get_submap(&self, _: StrRec) -> Option<&Self> { panic!("samples don't have submaps") }
-    fn insert_submap(&mut self, _: StrRec, _: Self) -> Option<Self> { panic!("samples don't have submaps") }
-    fn get_value(&self, _: StrRec) -> Option<&Self::V> { Some(&self.0) }
-    fn insert_value(&mut self, _: StrRec, value: Self::V) -> Option<Self::V> {
-        Some(std::mem::replace(&mut self.0, value))
-    }
-}
+// impl<Self::Ret> Argsddr for Sample<Self::Ret> {
+//     type V = Self::Ret;
+//     fn empty() -> Self { panic!("samples can't be empty") }
+//     fn get_submap(&self, _: StrRec) -> Option<&Self> { panic!("samples don't have submaps") }
+//     fn insert_submap(&mut self, _: StrRec, _: Self) -> Option<Self> { panic!("samples don't have submaps") }
+//     fn remove_submap(&mut self, addr: StrRec) -> Option<Self> { panic!("samples don't have submaps") }
+//     fn get_value(&self, _: StrRec) -> Option<&Self::V> { Some(&self.0) }
+//     fn insert_value(&mut self, _: StrRec, value: Self::V) -> Option<Self::V> {
+//         Some(std::mem::replace(&mut self.0, value))
+//     }
+//     fn remove_value(&mut self, addr: StrRec) -> Option<Self::V> { Some(self.0) }
+// }
 
-pub struct Trace<A,D: Addr,T> {
-    args: A,
-    pub data: D,
-    retv: Option<T>,
+#[derive(Clone)]
+pub struct TraceNew<Args,Data,Ret> {
+    pub args: Args,
+    pub data: Data,
+    pub retv: Option<Ret>,
     pub logp: f64
 }
 
-impl<A: 'static,D: Addr + 'static,T: 'static> Trace<A,D,T> {
-    pub fn new(args: A, data: D, retv: T, logp: f64) -> Self {
-        Trace { args, data, retv: Some(retv), logp }
+impl<Args: 'static,Data: 'static,Ret: 'static> TraceNew<Args,Data,Ret> {
+    pub fn new(args: Args, data: Data, retv: Ret, logp: f64) -> Self {
+        TraceNew { args, data, retv: Some(retv), logp }
     }
 
-    pub fn empty(args: A) -> Self {
-        Trace {
-            args,
-            data: D::empty(),
-            retv: None,
-            logp: 0.
-        }
-    }
-
-    pub fn get_args(&self) -> &A { &self.args }
-    pub fn get_data(&self) -> &D { &self.data }
-    pub fn get_data_mut(&mut self) -> &mut D { &mut self.data }
-    pub fn get_retv(&self) -> Option<&T> { self.retv.as_ref() }
-    pub fn set_retv(&mut self, v: T) { self.retv = Some(v); }
+    pub fn get_args(&self) -> &Args { &self.args }
+    pub fn get_data(&self) -> &Data { &self.data }
+    pub fn get_data_mut(&mut self) -> &mut Data { &mut self.data }
+    pub fn get_retv(&self) -> Option<&Ret> { self.retv.as_ref() }
+    pub fn set_retv(&mut self, v: Ret) { self.retv = Some(v); }
     pub fn logpdf(&self) -> f64 { self.logp }
 }
 
-// ~ TraceBox ~
-//   "What's inside the box?"
-
-//   Dynamic type erasure gives flexibility over the types of samples,
-//   and a unified language interface for sampling from other generative
-//   functions, while guaranting strong protection against memory leaks.
-//   This _requires_ all choice values live on the heap and are dynamically typed, however.
-pub struct TraceBox {
-    args: Box<dyn Any>,
-    data: Box<dyn Any>,
-    retv: Option<Box<dyn Any>>,
-    pub logp: f64
-}
-
-impl TraceBox {
-    pub fn from_trace<A: 'static,D: Addr + 'static,T: 'static>(trace: Trace<A,D,T>) -> Self {
-        TraceBox {
-            args: Box::new(trace.args),
-            data: Box::new(trace.data),
-            retv: match trace.retv {
-                None => None,
-                Some(v) => Some(Box::new(v))
-            },
-            logp: trace.logp
-        }
-    }
-
-    pub fn into_inner<A: 'static,D: Addr + 'static,T: 'static>(self) -> Trace<A,D,T> {
-        Trace {
-            args: *self.args.downcast::<A>().ok().unwrap(),
-            data: *self.data.downcast::<D>().ok().unwrap(),
-            retv: match self.retv {
-                None => None,
-                Some(v)=> Some(*v.downcast::<T>().ok().unwrap())
-            },
-            logp: self.logp
-        }
-    }
-}
-
-pub trait GenFn<A,D: Addr,T> {
-
+pub trait GenFn<Args,Data,Ret> {
     fn rng(&self) -> ThreadRng;
-    fn simulate(&mut self, args: A) -> Trace<A,D,T>;
-    fn generate(&mut self, args: A, constraints: impl Addr) -> (Trace<A,D,T>, f64);
+    fn simulate(&mut self, args: Args) -> TraceNew<Args,Data,Ret>;
+    fn generate(&mut self, args: Args, constraints: Data) -> (TraceNew<Args,Data,Ret>, f64);
 
     fn update(&mut self,
-        trace: &mut Trace<A,D,T>,
-        args: A,
+        trace: &mut TraceNew<Args,Data,Ret>,
+        args: Args,
         diff: crate::GfDiff,
-        constraints: impl Addr  // forward choices
-    ) -> (D, f64);      // backward choices
+        constraints: Data  // forward choices
+    ) -> (Data, f64);      // backward choices
 
-    // fn call(&mut self, args: Self::A) -> Self::T;
-    // fn propose(&mut self, args: Self::A) -> (impl Addr, f64);
-    // fn assess(&mut self, args: Self::A, constraints: impl Addr) -> f64;
 
+    // fn call(&mut self, args: Args) -> Ret {
+    //     self.simulate(args).retv.unwrap()
+    // }
+
+    fn propose(&mut self, args: Args) -> (Data, f64) {
+        let trace = self.simulate(args);
+        (trace.data, trace.logp)
+    }
+
+    fn assess(&mut self, args: Args, constraints: Data) -> f64 {
+        self.generate(args, constraints).1
+    }
 }
 
 

@@ -5,11 +5,13 @@
 #![feature(anonymous_lifetime_in_impl_trait)]
 #![feature(box_into_inner)]
 #![feature(map_try_insert)]
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
 
 pub mod gfi;
 pub mod gfi_new;
 pub mod trie;
-pub mod hashmap;
+// pub mod hashmap;
 pub mod choices;
 // pub mod dynamic;
 pub mod modeling;
@@ -19,8 +21,8 @@ pub mod address;
 
 // modeling interface
 pub use trie::Trie;
-pub use modeling::dists;
-pub use gfi_new::{StrRec, Addr, GenFn, Sample};
+pub use modeling::dists::{self,Sample};
+pub use gfi_new::{StrRec, GenFn};
 pub use address::SplitAddr;
 // pub use gfi::Addr;
 pub use gfi::Trace;
