@@ -1,20 +1,10 @@
-// type TrieTrace<A,T> = StackTrace<A,Addr<,T>;
-// type VecTrace<A,D: Addr<str>,T> = StackTrace<A,Vec<D>,Vec<T>>;
-
-// struct TrieFn<A,T>();
-
-// struct TrieBuilder {
-// }
-
-use std::collections::HashSet;
-use std::rc::Rc;
-
+use std::{collections::HashSet, rc::Rc};
 use rand::rngs::ThreadRng;
 
 // use super::{Rc<dyn Any>};
 use std::any::Any;
 use crate::modeling::dists::Distribution;
-use crate::{Trie, GenFn, GfDiff, Trace, StrRec, Sample};
+use crate::{Trie, GenFn, GfDiff, Trace, StrRec};
 
 pub enum TrieFnState<A,T> {
     Simulate { trace: Trace<A,Trie<Rc<dyn Any>>,T> },
@@ -140,6 +130,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
     }
 }
 
+
 pub struct TrieFn<A,T> {
     rng: ThreadRng,
     func: fn(&mut TrieFnState<A,T>, A) -> T,
@@ -154,8 +145,7 @@ impl<Args,Ret> TrieFn<Args,Ret>{
     }
 }
 
-// A DynGenFn is a generative function that constructs its stack-trace during
-// runtime (allocating all internal memory dynamically on the heap).
+
 impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for TrieFn<Args,Ret> {
     fn rng(&self) -> ThreadRng { self.rng.clone() }
 
@@ -168,21 +158,18 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for T
     }
 
     fn generate(&mut self, args: Args, constraints: Trie<Rc<dyn Any>>) -> (Trace<Args,Trie<Rc<dyn Any>>,Ret>, f64) {
-        // dbg!(constraints.is_empty());
-        // dbg!(&constraints);
         let mut state = TrieFnState::Generate { trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. }, weight: 0., constraints };
         let retv = (self.func)(&mut state, args);
         let TrieFnState::Generate {mut trace, weight, constraints} = state else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        // dbg!(constraints.is_empty());
         trace.set_retv(retv);
         (trace, weight)
     }
 
     fn update(&mut self,
-        mut trace: Trace<Args,Trie<Rc<dyn Any>>,Ret>,
+        trace: Trace<Args,Trie<Rc<dyn Any>>,Ret>,
         args: Args,
-        diff: GfDiff,
+        _: GfDiff,
         constraints: Trie<Rc<dyn Any>>
     ) -> (Trie<Rc<dyn Any>>, f64) {
         let mut state = TrieFnState::Update {
@@ -197,8 +184,4 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for T
         trace.set_retv(retv);
         (discard, weight)
     }
-
-    // fn call(&mut self, args: Self::A) -> Self::T;
-    // fn propose(&mut self, args: Self::A) -> (impl Addr<str>, f64);
-    // fn assess(&mut self, args: Self::A, constraints: impl Addr<str>) -> f64;
 }

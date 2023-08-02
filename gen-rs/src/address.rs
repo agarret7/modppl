@@ -45,7 +45,7 @@ fn test_trie_key() {
 
     while key != Term("(  y?A1 , grexxy )") {
         match key {
-            Prefix(a, b) => { key = SplitAddr::from_addr(b); },
+            Prefix(_, b) => { key = SplitAddr::from_addr(b); },
             t => { panic!("expected term = Term(\"(  y?A1 , grexxy )\"), got {:?}", t) }
         }
     }

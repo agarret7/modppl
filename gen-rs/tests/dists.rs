@@ -1,5 +1,5 @@
 use std::{collections::HashMap};
-    use nalgebra::{dvector,dmatrix};
+use nalgebra::{dvector,dmatrix};
 
 use rand::rngs::ThreadRng;
 use statistical::{mean, variance, standard_deviation};
