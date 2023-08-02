@@ -21,7 +21,7 @@ pub fn test_dynamic_model_prototype() {
     let mut dynamic_model_prototype = TrieFn::new(test_model);
 
     for i in (0..100).into_iter() {
-        // let trace = dynamic_model_prototype.simulate(1.);
+        let trace = dynamic_model_prototype.simulate(1.);
         let mut constraints = Trie::<Rc<dyn Any>>::new();
         constraints.insert_leaf_node("1", Rc::new(100.));
         constraints.insert_leaf_node("5", Rc::new(200.));

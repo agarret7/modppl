@@ -109,7 +109,7 @@ pub trait GenFn<Args,Data,Ret> {
     fn generate(&mut self, args: Args, constraints: Data) -> (Trace<Args,Data,Ret>, f64);
 
     fn update(&mut self,
-        trace: Trace<Args,Data,Ret>,
+        trace: &mut Trace<Args,Data,Ret>,
         args: Args,
         diff: GfDiff,
         constraints: Data  // forward choices
