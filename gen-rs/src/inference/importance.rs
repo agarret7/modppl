@@ -1,25 +1,20 @@
 use rand::rngs::ThreadRng;
-use crate::{
-    mathutils::logsumexp,
-    Trace,
-    ChoiceBuffer, GenerativeFunction
-};
+use crate::{mathutils::logsumexp, Trace, GenFn};
 
 
-pub fn importance_sampling<X: Copy,T,U: Trace<T=T>>(
-    rng: &mut ThreadRng,
-    model: &impl GenerativeFunction<X=X,T=T,U=U>,
-    model_args: X,
-    observations: impl ChoiceBuffer,
+pub fn importance_sampling<Args: Clone,Data: Clone,Ret>(
+    model: &mut impl GenFn<Args,Data,Ret>,
+    model_args: Args,
+    observations: Data,
     num_samples: u32
-) -> (Vec<U>, Vec<f64>, f64) {
-    let traces = (0..num_samples)
-        .map(|_| model.generate(rng, model_args, observations.clone()))
-        .collect::<Vec<U>>();
-    let log_total_weight = logsumexp(&traces.iter().map(|tr| tr.get_score()).collect::<Vec<f64>>());
+) -> (Vec<Trace<Args,Data,Ret>>, Vec<f64>, f64) {
+    let out = (0..num_samples)
+        .map(|_| model.generate(model_args.clone(), observations.clone()))
+        .collect::<Vec<(Trace<Args,Data,Ret>,f64)>>();
+    let log_total_weight = logsumexp(&out.iter().map(|(_, w)| *w).collect::<Vec<f64>>());
     let log_ml_estimate = log_total_weight - (num_samples as f64).ln();
-    let log_normalized_weights = traces.iter()
-        .map(|tr| tr.get_score() - log_total_weight)
+    let log_normalized_weights = out.iter()
+        .map(|(_, w)| w - log_total_weight)
         .collect::<Vec<f64>>();
-    return (traces, log_normalized_weights, log_ml_estimate)
+    return (out.into_iter().map(|(tr, _)| tr).collect::<_>(), log_normalized_weights, log_ml_estimate)
 }

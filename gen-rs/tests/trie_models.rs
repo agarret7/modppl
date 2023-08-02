@@ -1,39 +1,36 @@
 use std::any::Any;
 use std::rc::Rc;
-use gen_rs::{Trie,modeling::triefn::{TrieFn,TrieFnState}, dists::{Distribution}};
+use gen_rs::{GenFn,Trie,modeling::triefn::{TrieFn,TrieFnState}, dists::{Distribution}};
 use gen_rs::modeling::dists::{normal, categorical};
 // use gen_rs::modeling::CallSite;
-use gen_rs::gfi_new::TraceNew as Trace;
-use gen_rs::inference::new_importance::importance_sampling;
+use gen_rs::{Trace, importance_sampling};
 use rand::rngs::ThreadRng;
 
 
 pub fn test_model(state: &mut TrieFnState<f64,f64>,noise: f64) -> f64 {
     let mut sum = 0.;
-    for i in (1..100).into_iter() {
+    for i in (1..3000).into_iter() {
         let x = state.sample_at(&mut normal, (1., noise), Box::leak(format!("{}", i).into_boxed_str()));
         sum += x;
     }
     sum
 }
 
-// #[test]
-// pub fn test_dynamic_model_prototype() {
-//     let mut dynamic_model_prototype = TrieFn::new(test_model);
+#[test]
+pub fn test_dynamic_model_prototype() {
+    let mut dynamic_model_prototype = TrieFn::new(test_model);
 
-//     for i in (0..1000).into_iter() {
-//         // let trace = dynamic_model_prototype.simulate(1.);
-//         let mut constraints = Trie::<CallSite>::new();
-//         constraints.insert_leaf_node("1", CallSite::from(Sample(100.)));
-//         constraints.insert_leaf_node("5", CallSite::from(Sample(2000.)));
-//         let (trace, weight) = dynamic_model_prototype.generate(1., constraints);
-//         // let data = trace.get_data();
-//         // dbg!(data.get_value("x").unwrap().into_inner::<(f64,f64),Sample<f64>,f64>().get_retv());
-//         approx::assert_abs_diff_eq!(*trace.get_retv().unwrap(), 3100., epsilon = 50.);
-//         dbg!(trace.logpdf());
-//         dbg!(weight);
-//     }
-// }
+    for i in (0..100).into_iter() {
+        // let trace = dynamic_model_prototype.simulate(1.);
+        let mut constraints = Trie::<Rc<dyn Any>>::new();
+        constraints.insert_leaf_node("1", Rc::new(100.));
+        constraints.insert_leaf_node("5", Rc::new(200.));
+        let (trace, weight) = dynamic_model_prototype.generate(0.1, constraints);
+        approx::assert_abs_diff_eq!(*trace.get_retv().unwrap(), 3298., epsilon = 50.);
+        dbg!(trace.logpdf());
+        dbg!(weight);
+    }
+}
 
 fn _obs_model(state: &mut TrieFnState<(f64, f64, Vec<f64>),Vec<f64>>, args: (f64, f64, Vec<f64>)) -> Vec<f64> {
     let (slope, intercept, xs) = args;

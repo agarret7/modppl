@@ -1,6 +1,6 @@
 use rand::{self,Rng, rngs::ThreadRng};
 use super::Sample;
-use crate::{GenFn, gfi_new::TraceNew as Trace};
+use crate::{Trace, GenFn, GfDiff};
 
 
 pub fn u01(rng: &mut ThreadRng) -> f64 {
@@ -30,9 +30,9 @@ impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
     }
 
     fn update(&mut self,
-            trace: &mut Trace<U,Sample<T>,T>,
+            trace: Trace<U,Sample<T>,T>,
             args: U,
-            diff: crate::GfDiff,
+            diff: GfDiff,
             constraints: Sample<T>
         ) -> (Sample<T>, f64) {
         panic!("not implemented")
