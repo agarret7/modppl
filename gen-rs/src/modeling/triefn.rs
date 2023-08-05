@@ -7,12 +7,11 @@ use crate::modeling::dists::Distribution;
 use crate::{Trie, GenFn, GfDiff, Trace, StrRec};
 
 pub enum TrieFnState<'a,A,T> {
-    Simulate { trace: Trace<A,Trie<Rc<dyn Any>>,T>, weight_trie: Trie<f64> },
-    Generate { trace: Trace<A,Trie<Rc<dyn Any>>,T>, weight_trie: Trie<f64>, weight: f64, constraints: Trie<Rc<dyn Any>> },
+    Simulate { trace: Trace<A,Trie<Rc<dyn Any>>,T> },
+    Generate { trace: Trace<A,Trie<Rc<dyn Any>>,T>, weight: f64, constraints: Trie<Rc<dyn Any>> },
     Update {
         trace: &'a mut Trace<A,Trie<Rc<dyn Any>>,T>,
         constraints: Trie<Rc<dyn Any>>,
-        weight_trie: Trie<f64>,
         weight: f64,
         discard: Trie<Rc<dyn Any>>
     }
@@ -43,45 +42,48 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
         match self {
             TrieFnState::Simulate {
                 trace,
-                weight_trie
             } => {
                 let x = dist.random(&mut dist.rng(), args.clone());
                 let logp = dist.logpdf(&x, args);
                 trace.logp += logp;
-                weight_trie.insert_leaf_node(addr, logp);
                 let data = trace.get_data_mut();
                 data.insert_leaf_node(addr, Rc::new(x.clone()));
                 x
             }
+
             TrieFnState::Generate {
                 trace,
-                weight_trie,
                 weight,
                 constraints
             } => {
-                let (x, dlogp) = match constraints.remove_leaf_node(addr) {
+                // check if there are constraints
+                let (x, leaf_logp) = match constraints.remove_leaf_node(addr) {
+                    // if None, sample a value and calculate change to trace.logp
                     None => {
                         let x = dist.random(&mut dist.rng(), args.clone());
-                        let dlogp = dist.logpdf(&x, args);
-                        (Rc::new(x), dlogp)
+                        let leaf_logp = dist.logpdf(&x, args);
+                        (Rc::new(x), leaf_logp)
                     }
+                    // if Some, cast to type V, calculate change to trace.logp (and add to weight)
                     Some(call) => {
                         let x = call.downcast::<V>().ok().unwrap();
-                        let dlogp = dist.logpdf(x.as_ref(), args);
-                        *weight += dlogp;
-                        (x, dlogp)
+                        let leaf_logp = dist.logpdf(x.as_ref(), args);
+                        *weight += leaf_logp;
+                        (x, leaf_logp)
                     }
                 };
-                trace.logp += dlogp;
-                weight_trie.insert_leaf_node(addr, dlogp);
+                
+                // mutate trace with sampled leaf, increment total trace.logp, and insert in logp_trie.
                 let data = trace.get_data_mut();
                 data.insert_leaf_node(addr, x.clone());
+                trace.logp += leaf_logp;
+
                 x.as_ref().clone()
             }
+
             TrieFnState::Update {
                 trace,
                 constraints,
-                weight_trie,
                 weight,
                 discard
             } => {
@@ -94,7 +96,7 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                 let mut prev_logp = 0.;
                 if has_previous {
                     prev_retv = data.remove_leaf_node(addr).unwrap().downcast::<V>().ok().unwrap();
-                    prev_logp = 0.;  // todo: replace logp from previous choice
+                    // prev_logp = *logp_trie.get_leaf_node(addr).unwrap();
                     if constrained {
                         discard.insert_leaf_node(addr, prev_retv);
                         retv = constraints.remove_leaf_node(addr).unwrap().downcast::<V>().ok().unwrap();
@@ -117,14 +119,12 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                 }
 
                 data.insert_leaf_node(addr, retv.clone());
-                weight_trie.insert_leaf_node(addr, logp);
 
                 retv.as_ref().clone()
             }
         }
     }
 
-    // trace a random call, storing the subtrace as a black-box heap-allocated leaf node
     pub fn trace_at<
         X: 'static,
         Y: Clone + 'static,
@@ -132,18 +132,21 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
         match self {
             TrieFnState::Simulate {
                 trace,
-                weight_trie
             } => {
                 let subtrace = gen_fn.simulate(args);
-                trace.logp += subtrace.logp;
-                let retv = subtrace.get_retv().unwrap().clone();
+
                 let data = trace.get_data_mut();
                 data.insert_internal_node(addr, subtrace.data);
+
+                let retv = subtrace.retv.unwrap();
+                data.insert_leaf_node(addr, Rc::new(retv.clone()));
+                trace.logp += subtrace.logp;
+
                 retv
             }
+
             TrieFnState::Generate {
                 trace,
-                weight_trie,
                 weight,
                 constraints
             } => {
@@ -157,20 +160,58 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                         subtrace
                     }
                 };
-                trace.logp += subtrace.logp;
-                let retv = subtrace.get_retv().unwrap().clone();
+
                 let data = trace.get_data_mut();
                 data.insert_internal_node(addr, subtrace.data);
+
+                let retv = subtrace.retv.unwrap().clone();
+                trace.logp += subtrace.logp;
+
                 retv
             },
+
             TrieFnState::Update {
                 trace,
-                weight_trie,
                 constraints,
                 weight,
                 discard
             } => {
-                panic!()
+                panic!();
+                // let data = trace.get_data_mut();
+                // let prev_subtrie: Trie<Rc<dyn Any>>;
+                // let subtrie: Trie<Rc<dyn Any>>;
+                // let retv: Rc<Y>;
+
+                // let has_previous = data.has_internal_node(addr);
+                // let constrained = constraints.has_internal_node(addr);
+                // let mut prev_logp = 0.;
+                // if has_previous {
+                //     prev_subtrie = data.remove_internal_node(addr).unwrap();
+                //     // prev_logp = logp_trie.sum_internal_node(addr);
+                //     if constrained {
+                //         discard.insert_internal_node(addr, prev_subtrie);
+                //         subtrie = constraints.remove_internal_node(addr).unwrap();
+                //     } else {
+                //         subtrie = prev_subtrie;
+                //     }
+                // } else {
+                //     if constrained {
+                //         subtrie = constraints.remove_internal_node(addr).unwrap();
+                //     } else {
+                //         subtrie = gen_fn.simulate(args);
+                //     }
+                // }
+
+                // let logp = dist.logpdf(retv.as_ref(), args);
+                // if has_previous {
+                //     *weight += logp - prev_logp;
+                // } else {
+                //     *weight += logp;
+                // }
+
+                // data.insert_leaf_node(addr, retv.clone());
+
+                // retv.as_ref().clone()
             }
         }
     }
@@ -198,10 +239,9 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for T
     fn simulate(&mut self, args: Args) -> Trace<Args,Trie<Rc<dyn Any>>,Ret> {
         let mut state = TrieFnState::Simulate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
-            weight_trie: Trie::new()
         };
         let retv = (self.func)(&mut state, args);
-        let TrieFnState::Simulate {mut trace, weight_trie} = state else { unreachable!() };
+        let TrieFnState::Simulate {mut trace} = state else { unreachable!() };
         trace.set_retv(retv);
         trace
     }
@@ -209,12 +249,11 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for T
     fn generate(&mut self, args: Args, constraints: Trie<Rc<dyn Any>>) -> (Trace<Args,Trie<Rc<dyn Any>>,Ret>, f64) {
         let mut state = TrieFnState::Generate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
-            weight_trie: Trie::new(),
             weight: 0.,
             constraints
         };
         let retv = (self.func)(&mut state, args);
-        let TrieFnState::Generate {mut trace, weight_trie, weight, constraints} = state else { unreachable!() };
+        let TrieFnState::Generate {mut trace, weight, constraints} = state else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.set_retv(retv);
         (trace, weight)
@@ -228,13 +267,12 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<Rc<dyn Any>>,Ret> for T
     ) -> (Trie<Rc<dyn Any>>, f64) {
         let mut state = TrieFnState::Update {
             trace: trace,
-            weight_trie: Trie::new(),
             weight: 0.,
             constraints,
             discard: Trie::new()
         };
         let retv = (self.func)(&mut state, args);
-        let TrieFnState::Update {mut trace, weight_trie, weight, constraints, discard} = state else { unreachable!() };
+        let TrieFnState::Update {mut trace, weight, constraints, discard} = state else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.set_retv(retv);
         (discard, weight)

@@ -4,7 +4,7 @@ use crate::{StrRec,SplitAddr};
 use SplitAddr::{Prefix,Term};
 
 
-#[derive(Debug,Clone,PartialEq,Eq)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct Trie<V> {
     leaf_nodes: HashMap<StrRec,V>,
     internal_nodes: HashMap<StrRec,Trie<V>>
@@ -20,6 +20,21 @@ impl<V> Trie<V> {
 
     pub fn is_empty(&self) -> bool {
         self.leaf_nodes.is_empty() && self.internal_nodes.is_empty()
+    }
+
+    pub fn has_internal_node(&self, addr: StrRec) -> bool {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.internal_nodes.contains_key(addr)
+            }
+            Prefix(first, rest) => {
+                if self.internal_nodes.contains_key(first) {
+                    self.internal_nodes[first].has_internal_node(rest)
+                } else {
+                    false
+                }
+            }
+        }
     }
 
     pub fn get_internal_node(&self, addr: StrRec) -> Option<&Self> {
@@ -112,6 +127,22 @@ impl<V> Trie<V> {
                 node.remove_leaf_node(rest)
             }
         }
+    }
+}
+
+impl Trie<f64> {
+    pub fn sum_internal_node(&self, addr: StrRec) -> f64 {
+        match self.get_internal_node(addr) {
+            Some(internal_node) => {
+                internal_node.sum()
+            }
+            None => { 0. }
+        }
+    }
+
+    pub fn sum(&self) -> f64 {
+        self.internal_nodes.values().fold(0., |acc, t| acc + t.sum()) +
+        self.leaf_nodes.values().fold(0., |acc, v| acc + v)
     }
 }
 
