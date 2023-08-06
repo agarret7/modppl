@@ -1,27 +1,39 @@
 use regex::Regex;
 use std::cell::RefCell;
-use crate::StrRec;
 
 
 #[derive(Debug,PartialEq,Eq,Hash)]
-pub enum SplitAddr {
-    Term(StrRec),
-    Prefix(StrRec, StrRec)
+pub enum SplitAddr<'a> {
+    Term(&'a str),
+    Prefix(&'a str, &'a str)
 }
 use SplitAddr::{Prefix,Term};
 
 thread_local!(static RE: RefCell<Regex> = RefCell::new(Regex::new(r"^(.*?)=>(.*)$").ok().unwrap()));
 
-impl SplitAddr {
-    pub fn from_addr(addr: StrRec) -> Self {
+impl<'a> SplitAddr<'a> {
+    pub fn from_addr(addr: &'a str) -> Self {
         match RE.with(|re| re.borrow().captures(&addr)) {
             None => {
                 Term(addr.trim_start().trim_end())
             },
             Some(caps) => {
-                let first: StrRec = caps.get(1).unwrap().into();
-                let rest: StrRec = caps.get(2).unwrap().into();
+                let first: &str = caps.get(1).unwrap().into();
+                let rest: &str = caps.get(2).unwrap().into();
                 Prefix(first.trim_start().trim_end(), rest)
+            }
+        }
+    }
+
+    pub fn normalize(addr: &'a str) -> String {
+        match Self::from_addr(addr) {
+            Term(s) => {
+                s.to_string()
+            }
+            Prefix(first, rest) => {
+                let mut first = first.to_owned();
+                first.push_str(&Self::normalize(rest));
+                first
             }
         }
     }

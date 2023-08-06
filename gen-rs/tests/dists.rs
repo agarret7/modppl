@@ -70,10 +70,10 @@ fn test_mvnormal() {
 
     let true_mu = dvector![-1.5, 3.2];
     let true_cov = dmatrix![1.,-3./5.;-3./5.,2.];
-    let params = (&true_mu, &true_cov);
+    let params = (true_mu.clone(), true_cov.clone());
 
     let samples = (0..50000)
-        .map(|_| mvnormal.random(&mut rng, params).data.as_vec().to_vec())
+        .map(|_| mvnormal.random(&mut rng, params.clone()).data.as_vec().to_vec())
         .collect::<Vec<Vec<f64>>>();
     let sample_xs = samples.iter().map(|p| p[0]).collect::<Vec<f64>>();
     let sample_ys = samples.iter().map(|p| p[1]).collect::<Vec<f64>>();
@@ -92,21 +92,21 @@ fn test_mvnormal() {
     let x = dvector![1.1, 5.8];
     let mu = dvector![1.3, 5.6];
     let cov = dmatrix![1., -0.81; -0.81, 2.5];
-    let params = (&mu, &cov);
+    let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
     approx::assert_abs_diff_eq!(logp, -2.1642100746383357, epsilon = f64::EPSILON);
 
     let x = dvector![30.1, -46.8];
     let mu = dvector![0., 6.];
     let cov = dmatrix![496., 0.13; 0.13, 500.];
-    let params = (&mu, &cov);
+    let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
     approx::assert_abs_diff_eq!(logp, -11.750458919763666, epsilon = f64::EPSILON);
 
     let x = dvector![1.2, 5.1, -7.8];
     let mu = dvector![1.4, 5.0, -7.4];
     let cov = dmatrix![1., 0.1, 0.9; 0.1, 1.3, 0.4; 0.9, 0.4, 1.75];
-    let params = (&mu, &cov);
+    let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
     approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = f64::EPSILON);
 }

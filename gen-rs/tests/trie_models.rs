@@ -1,16 +1,17 @@
 use std::any::Any;
+use std::fs::write;
 use std::rc::Rc;
-use gen_rs::{GenFn,Trie,modeling::triefn::{TrieFn,TrieFnState}, dists::{Distribution}};
+use gen_rs::{GenFn,Trie,modeling::triefn::{TrieFn,TrieFnState}, dists::{Distribution, mvnormal}};
 use gen_rs::modeling::dists::{normal, categorical};
-// use gen_rs::modeling::CallSite;
 use gen_rs::{Trace, importance_sampling};
+use nalgebra::{DMatrix, DVector, dmatrix, dvector};
 use rand::rngs::ThreadRng;
 
 
 pub fn test_model(state: &mut TrieFnState<f64,f64>,noise: f64) -> f64 {
     let mut sum = 0.;
     for i in (1..3000).into_iter() {
-        let x = state.sample_at(&mut normal, (1., noise), Box::leak(format!("{}", i).into_boxed_str()));
+        let x = state.sample_at(&mut normal, (1., noise), format!("{}", i));
         sum += x;
     }
     sum
@@ -37,15 +38,15 @@ fn _obs_model(state: &mut TrieFnState<(f64, f64, Vec<f64>),Vec<f64>>, args: (f64
     xs.into_iter()
         .enumerate()
         .map(|(i, x)| 
-            state.sample_at(&mut normal, (slope * x + intercept, 0.1), Box::leak(format!("{}", i).into_boxed_str()))
+            state.sample_at(&mut normal, (slope * x + intercept, 0.1), format!("{}", i))
         )
         .collect::<_>()
 }
 
 fn _line_model(state: &mut TrieFnState<Vec<f64>,Vec<f64>>, xs: Vec<f64>) -> Vec<f64> {
-    let slope = state.sample_at(&mut normal, (0., 1.), "slope");
-    let intercept = state.sample_at(&mut normal, (0., 2.), "intercept");
-    state.trace_at(TrieFn::new(_obs_model), (slope, intercept, xs), "ys")
+    let slope = state.sample_at(&mut normal, (0., 1.), "slope".to_string());
+    let intercept = state.sample_at(&mut normal, (0., 2.), "intercept".to_string());
+    state.trace_at(TrieFn::new(_obs_model), (slope, intercept, xs), "ys".to_string())
 }
 
 #[test]
@@ -80,4 +81,54 @@ pub fn test_bayesian_linear_regression() {
         println!("intercept = {}", &traces[i].data.get_leaf_node("intercept").unwrap().clone().downcast::<f64>().ok().unwrap());
     }
     dbg!(lml_estimate);
+}
+
+
+mod pointed;
+use pointed::types_2d::{Bounds, Point, uniform_2d};
+
+fn _pointed_2d_model(state: &mut TrieFnState<(Bounds, DMatrix<f64>),Point>, args: (Bounds, DMatrix<f64>)) -> Point {
+    let (bounds, cov) = args;
+    let latent = state.sample_at(&mut uniform_2d, bounds, "latent".to_string());
+    state.sample_at(&mut mvnormal, (latent, cov), "obs".to_string())
+}
+
+use std::rc::Weak;
+
+fn _pointed_2d_drift_proposal(state: &mut TrieFnState<(Weak<Trace<(Bounds, DMatrix<f64>),Trie<Rc<dyn Any>>,Point>>, DMatrix<f64>),()>,
+                              args: (Weak<Trace<(Bounds, DMatrix<f64>),Trie<Rc<dyn Any>>,Point>>, DMatrix<f64>)) -> () {
+    let (trace, noise) = args;
+    let trace = trace.upgrade().unwrap();
+    let data = trace.get_data();
+    let latent = trace.get_data().get_leaf_node("latent").unwrap().clone().downcast::<DVector<f64>>().ok().unwrap();
+    let new_latent = state.sample_at(&mut mvnormal, (latent.as_ref().clone(), noise), "latent".to_string());
+}
+
+use gen_rs::inference::metropolis_hastings;
+
+#[test]
+pub fn test_mcmc() -> std::io::Result<()>{
+    const NUM_ITERS: u32 = 25000;
+
+    let mut model = TrieFn::new(_pointed_2d_model);
+    let mut proposal = TrieFn::new(_pointed_2d_drift_proposal);
+
+    let bounds = Bounds { xmin: -5., xmax: 5., ymin: -5., ymax: 5. };
+    let obs = dvector![0., 0.];
+
+    let mut observations = Trie::new();
+    observations.insert_leaf_node("obs", Rc::new(obs) as Rc<dyn Any>);
+
+    let mut trace = model.generate((bounds, dmatrix![1., -3./5.; -3./5., 2.]), observations).0;
+    for iter in 0..NUM_ITERS {
+        dbg!(iter);
+        let (new_trace, accepted) = metropolis_hastings(&mut model, trace, &mut proposal, dmatrix![0.25, 0.; 0., 0.25]);
+        dbg!(accepted);
+        trace = new_trace;
+        let data = trace.get_data().get_leaf_node("latent").unwrap().clone().downcast::<DVector<f64>>().ok().unwrap();
+        let json = format!("[{},{}]", data[0], data[1]);
+        write(format!("../data/mh_trace_{}.json", iter), json)?;
+    }
+
+    Ok(())
 }

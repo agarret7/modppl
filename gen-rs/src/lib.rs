@@ -18,7 +18,7 @@ pub mod address;
 // modeling libs
 pub use trie::Trie;
 pub use modeling::dists::{self,Sample};
-pub use gfi::{StrRec, Trace, GenFn, GfDiff};
+pub use gfi::{Trace, GenFn, GfDiff};
 pub use address::SplitAddr;
 
 // inference libs

@@ -47,8 +47,6 @@
 use rand::rngs::ThreadRng;
 
 
-pub type StrRec = &'static str;
-
 // pub trait Argsddr: Index<StrRec> + Sized {
 //     type V;
 //     fn empty() -> Self;
