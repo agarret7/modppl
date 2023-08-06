@@ -24,24 +24,21 @@ impl<'a> SplitAddr<'a> {
             }
         }
     }
+}
 
-    pub fn normalize(addr: &'a str) -> String {
-        match Self::from_addr(addr) {
-            Term(s) => {
-                s.to_string()
-            }
-            Prefix(first, rest) => {
-                let mut first = first.to_owned();
-                first.push_str(&Self::normalize(rest));
-                first
-            }
+pub fn normalize_addr<'a>(addr: &'a str) -> String {
+    match SplitAddr::from_addr(addr) {
+        Term(s) => {
+            s.to_string()
+        }
+        Prefix(first, rest) => {
+            format!("{} => {}", first, normalize_addr(rest))
         }
     }
 }
 
-
 #[test]
-fn test_trie_key() {
+fn test_split_addr() {
     let key = SplitAddr::from_addr("test");
     assert_eq!(key, Term("test"));
 
@@ -61,4 +58,9 @@ fn test_trie_key() {
             t => { panic!("expected term = Term(\"(  y?A1 , grexxy )\"), got {:?}", t) }
         }
     }
+
+    let equiv_addr = "1=>   21f23  => 432=>132 => (  y?A1 , grexxy ) ";
+    let normalized_addr = "1 => 21f23 => 432 => 132 => (  y?A1 , grexxy )";
+    assert_eq!(normalize_addr(hard_addr), normalized_addr);
+    assert_eq!(normalize_addr(equiv_addr), normalized_addr);
 }

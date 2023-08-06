@@ -19,7 +19,7 @@ pub mod address;
 pub use trie::Trie;
 pub use modeling::dists::{self,Sample};
 pub use gfi::{Trace, GenFn, GfDiff};
-pub use address::SplitAddr;
+pub use address::{SplitAddr, normalize_addr};
 
 // inference libs
 pub use inference::importance_sampling;

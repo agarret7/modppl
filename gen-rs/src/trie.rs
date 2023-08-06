@@ -130,7 +130,7 @@ impl<V> Trie<V> {
     }
 }
 
-impl Trie<f64> {
+impl<V> Trie<(V,f64)> {
     pub fn sum_internal_node(&self, addr: &str) -> f64 {
         match self.get_internal_node(addr) {
             Some(internal_node) => {
@@ -142,7 +142,21 @@ impl Trie<f64> {
 
     pub fn sum(&self) -> f64 {
         self.internal_nodes.values().fold(0., |acc, t| acc + t.sum()) +
-        self.leaf_nodes.values().fold(0., |acc, v| acc + v)
+        self.leaf_nodes.values().fold(0., |acc, v| acc + v.1)
+    }
+
+    pub fn unweighted(self) -> Trie<V> {
+        Trie {
+            internal_nodes: self.internal_nodes.into_iter().map(|(addr, t)| (addr, t.unweighted())).collect::<_>(),
+            leaf_nodes: self.leaf_nodes.into_iter().map(|(addr, v)| (addr, v.0)).collect::<_>()
+        }
+    }
+
+    pub fn from_unweighted(trie: Trie<V>) -> Self {
+        Trie {
+            internal_nodes: trie.internal_nodes.into_iter().map(|(addr, t)| (addr, Self::from_unweighted(t))).collect::<_>(),
+            leaf_nodes: trie.leaf_nodes.into_iter().map(|(addr, v)| (addr, (v, 0.))).collect::<_>()
+        }
     }
 }
 
