@@ -70,9 +70,9 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
 
                 let x = dist.random(&mut dist.rng(), args.clone());
                 let logp = dist.logpdf(&x, args);
-                trace.logp += logp;
                 let data = trace.get_data_mut();
                 data.insert_leaf_node(addr, (Rc::new(x.clone()), logp));
+                trace.logp += logp;
                 x
             }
 
@@ -203,6 +203,7 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                 data.insert_internal_node(addr, subtrace.data);
 
                 let retv = subtrace.retv.unwrap().clone();
+                data.insert_leaf_node(addr, (Rc::new(retv.clone()), subtrace.logp));
                 trace.logp += subtrace.logp;
 
                 retv
@@ -238,8 +239,7 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                         logp = out.1;
                     } else {
                         subtrie = prev_subtrie;
-                        panic!();
-                        // retv = trace.retv.unwrap();
+                        retv = data.remove_leaf_node(addr).unwrap().0.downcast::<Y>().ok().unwrap();
                     }
                 } else {
                     if constrained {
@@ -258,7 +258,6 @@ impl<'a,A: 'static,T: 'static> TrieFnState<'a,A,T> {
                 }
 
                 *weight += logp;
-
                 data.insert_internal_node(addr, subtrie);
 
                 retv.as_ref().clone()
