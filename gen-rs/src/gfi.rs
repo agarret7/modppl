@@ -1,6 +1,3 @@
-use rand::rngs::ThreadRng;
-
-
 #[derive(Clone)]
 pub struct Trace<Args,Data,Ret> {
     pub args: Args,
@@ -18,31 +15,34 @@ impl<Args: 'static,Data: 'static,Ret: 'static> Trace<Args,Data,Ret> {
     pub fn set_retv(&mut self, v: Ret) { self.retv = Some(v); }
 }
 
-pub trait GenFn<Args,Data,Ret> {
-    fn rng(&self) -> ThreadRng;
-    fn simulate(&mut self, args: Args) -> Trace<Args,Data,Ret>;
-    fn generate(&mut self, args: Args, constraints: Data) -> (Trace<Args,Data,Ret>, f64);
 
-    fn update(&mut self,
+pub trait GenFn<Args,Data,Ret> {
+
+    fn simulate(&self, args: Args) -> Trace<Args,Data,Ret>;
+
+    fn generate(&self, args: Args, constraints: Data) -> (Trace<Args,Data,Ret>, f64);
+
+    fn update(&self,
         trace: Trace<Args,Data,Ret>,
         args: Args,
         diff: GfDiff,
-        constraints: Data  // forward choices
-    ) -> (Trace<Args,Data,Ret>, Data, f64);      // backward choices
+        constraints: Data                    // forward choices
+    ) -> (Trace<Args,Data,Ret>, Data, f64);  // backward choices
 
 
-    fn call(&mut self, args: Args) -> Ret {
+    fn call(&self, args: Args) -> Ret {
         self.simulate(args).retv.unwrap()
     }
 
-    fn propose(&mut self, args: Args) -> (Data, f64) {
+    fn propose(&self, args: Args) -> (Data, f64) {
         let trace = self.simulate(args);
         (trace.data, trace.logp)
     }
 
-    fn assess(&mut self, args: Args, constraints: Data) -> f64 {
+    fn assess(&self, args: Args, constraints: Data) -> f64 {
         self.generate(args, constraints).1
     }
+
 }
 
 

@@ -1,6 +1,6 @@
 use rand::{self,Rng, rngs::ThreadRng};
 use super::Sample;
-use crate::{Trace, GenFn, GfDiff};
+use crate::{GLOBAL_RNG, Trace, GenFn, GfDiff};
 
 
 pub fn u01(rng: &mut ThreadRng) -> f64 {
@@ -12,29 +12,27 @@ pub trait Distribution<T,U> {
     fn random(&self, rng: &mut ThreadRng, params: U) -> T;
 }
 
-impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
-    fn rng(&self) -> ThreadRng {
-        ThreadRng::default()
-    }
+// impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
+//     fn simulate(&mut self, args: U) -> Trace<U,Sample<T>,T> {
+//         let x = GLOBAL_RNG.with_borrow_mut(|rng| {
+//             self.random(rng, args.clone())
+//         });
+//         let logp = self.logpdf(&x, args.clone());
+//         Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }
+//     }
 
-    fn simulate(&mut self, args: U) -> Trace<U,Sample<T>,T> {
-        let x = self.random(&mut self.rng(), args.clone());
-        let logp = self.logpdf(&x, args.clone());
-        Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }
-    }
+//     fn generate(&mut self, args: U, constraints: Sample<T>) -> (Trace<U,Sample<T>,T>, f64) {
+//         let x = constraints.0;
+//         let logp = self.logpdf(&x, args.clone());
+//         (Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }, logp)
+//     }
 
-    fn generate(&mut self, args: U, constraints: Sample<T>) -> (Trace<U,Sample<T>,T>, f64) {
-        let x = constraints.0;
-        let logp = self.logpdf(&x, args.clone());
-        (Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }, logp)
-    }
-
-    fn update(&mut self,
-            trace: Trace<U,Sample<T>,T>,
-            args: U,
-            diff: GfDiff,
-            constraints: Sample<T>
-        ) -> (Trace<U,Sample<T>,T>, Sample<T>, f64) {
-        panic!("not implemented")
-    }
-}
+//     fn update(&mut self,
+//         _: Trace<U,Sample<T>,T>,
+//         _: U,
+//         _: GfDiff,
+//         _: Sample<T>
+//     ) -> (Trace<U,Sample<T>,T>, Sample<T>, f64) {
+//         panic!("not implemented")
+//     }
+// }

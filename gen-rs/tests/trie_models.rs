@@ -1,17 +1,17 @@
 use std::any::Any;
 use std::fs::write;
 use std::rc::Rc;
-use gen_rs::{GenFn,Trie,modeling::triefn::{TrieFn,TrieFnState}, dists::{Distribution, mvnormal}};
+use gen_rs::{GenFn,Trie,modeling::triefn::{TrieFnState, TrieFn}, dists::{Distribution, mvnormal}};
 use gen_rs::modeling::dists::{normal, categorical};
 use gen_rs::{Trace, importance_sampling};
 use nalgebra::{DMatrix, DVector, dmatrix, dvector};
 use rand::rngs::ThreadRng;
 
 
-pub fn test_model(state: &mut TrieFnState<f64,f64>,noise: f64) -> f64 {
+pub fn _dynamic_model_prototype(state: &mut TrieFnState<f64,f64>,noise: f64) -> f64 {
     let mut sum = 0.;
     for i in (1..3000).into_iter() {
-        let x = state.sample_at(&mut normal, (1., noise), &format!("{}", i));
+        let x = state.sample_at(&normal, (1., noise), &format!("{}", i));
         sum += x;
     }
     sum
@@ -19,10 +19,11 @@ pub fn test_model(state: &mut TrieFnState<f64,f64>,noise: f64) -> f64 {
 
 #[test]
 pub fn test_dynamic_model_prototype() {
-    let mut dynamic_model_prototype = TrieFn::new(test_model);
 
-    for i in (0..100).into_iter() {
-        let trace = dynamic_model_prototype.simulate(1.);
+    for _ in (0..100).into_iter() {
+        let mut dynamic_model_prototype = TrieFn::new(_dynamic_model_prototype);
+
+        let _trace = dynamic_model_prototype.simulate(1.);
         let mut constraints = Trie::<Rc<dyn Any>>::new();
         constraints.insert_leaf_node("1", Rc::new(100.));
         constraints.insert_leaf_node("5", Rc::new(200.));
@@ -38,14 +39,14 @@ fn _obs_model(state: &mut TrieFnState<(f64, f64, Vec<f64>),Vec<f64>>, args: (f64
     xs.into_iter()
         .enumerate()
         .map(|(i, x)| 
-            state.sample_at(&mut normal, (slope * x + intercept, 0.1), &format!("{}", i))
+            state.sample_at(&normal, (slope * x + intercept, 0.1), &format!("{}", i))
         )
         .collect::<_>()
 }
 
 fn _line_model(state: &mut TrieFnState<Vec<f64>,Vec<f64>>, xs: Vec<f64>) -> Vec<f64> {
-    let slope = state.sample_at(&mut normal, (0., 1.), "slope");
-    let intercept = state.sample_at(&mut normal, (0., 2.), "intercept");
+    let slope = state.sample_at(&normal, (0., 1.), "slope");
+    let intercept = state.sample_at(&normal, (0., 2.), "intercept");
     state.trace_at(TrieFn::new(_obs_model), (slope, intercept, xs), "ys")
 }
 
@@ -89,8 +90,8 @@ use pointed::types_2d::{Bounds, Point, uniform_2d};
 
 fn _pointed_2d_model(state: &mut TrieFnState<(Bounds, DMatrix<f64>),Point>, args: (Bounds, DMatrix<f64>)) -> Point {
     let (bounds, cov) = args;
-    let latent = state.sample_at(&mut uniform_2d, bounds, "latent");
-    state.sample_at(&mut mvnormal, (latent, cov), "obs")
+    let latent = state.sample_at(&uniform_2d, bounds, "latent");
+    state.sample_at(&mvnormal, (latent, cov), "obs")
 }
 
 use std::rc::Weak;
@@ -100,7 +101,7 @@ fn _pointed_2d_drift_proposal(state: &mut TrieFnState<(Weak<Trace<(Bounds, DMatr
     let (trace, noise) = args;
     let trace = trace.upgrade().unwrap();
     let latent = trace.data.get_leaf_node("latent").unwrap().clone().0.downcast::<DVector<f64>>().ok().unwrap();
-    state.sample_at(&mut mvnormal, (latent.as_ref().clone(), noise), "latent");
+    state.sample_at(&mvnormal, (latent.as_ref().clone(), noise), "latent");
 }
 
 use gen_rs::inference::metropolis_hastings;

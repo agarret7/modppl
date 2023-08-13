@@ -4,7 +4,7 @@ use rand::rngs::ThreadRng;
 // use super::{Rc<dyn Any>};
 use std::any::Any;
 use crate::modeling::dists::Distribution;
-use crate::{Trie, GenFn, GfDiff, Trace};
+use crate::{GLOBAL_RNG, Trie, GenFn, GfDiff, Trace};
 
 pub enum TrieFnState<A,T> {
     Simulate {
@@ -78,12 +78,14 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
     pub fn sample_at<
         V: Clone + 'static,
         W: Clone + 'static
-    >(&mut self, dist: &mut impl Distribution<V,W>, args: W, addr: &str) -> V {
+    >(&mut self, dist: &impl Distribution<V,W>, args: W, addr: &str) -> V {
         match self {
             TrieFnState::Simulate {
                 trace,
             } => {
-                let x = dist.random(&mut dist.rng(), args.clone());
+                let x = GLOBAL_RNG.with_borrow_mut(|rng| {
+                    dist.random(rng, args.clone())
+                });
                 let logp = dist.logpdf(&x, args);
                 let data = &mut trace.data;
                 data.insert_leaf_node(addr, (Rc::new(x.clone()), logp));
@@ -100,7 +102,9 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                 let (x, logp) = match constraints.remove_leaf_node(addr) {
                     // if None, sample a value and calculate change to trace.logp
                     None => {
-                        let x = dist.random(&mut dist.rng(), args.clone());
+                        let x = GLOBAL_RNG.with_borrow_mut(|rng| {
+                            dist.random(rng, args.clone())
+                        });
                         let logp = dist.logpdf(&x, args);
                         (Rc::new(x), logp)
                     }
@@ -151,7 +155,9 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                     if constrained {
                         x = constraints.remove_leaf_node(addr).unwrap().downcast::<V>().ok().unwrap();
                     } else {
-                        x = Rc::new(dist.random(&mut dist.rng(), args.clone()));
+                        x = Rc::new(GLOBAL_RNG.with_borrow_mut(|rng| {
+                            dist.random(rng, args.clone())
+                        }));
                     }
                 }
 
@@ -322,24 +328,18 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 
 
 pub struct TrieFn<A,T> {
-    rng: ThreadRng,
     func: fn(&mut TrieFnState<A,T>, A) -> T,
 }
 
 impl<Args,Ret> TrieFn<Args,Ret>{
     pub fn new(func: fn(&mut TrieFnState<Args,Ret>, Args) -> Ret) -> Self {
-        TrieFn {
-            rng: ThreadRng::default(),
-            func
-        }
+        TrieFn { func }
     }
 }
 
 
 impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret> for TrieFn<Args,Ret> {
-    fn rng(&self) -> ThreadRng { self.rng.clone() }
-
-    fn simulate(&mut self, args: Args) -> Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret> {
+    fn simulate(&self, args: Args) -> Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret> {
         let mut state = TrieFnState::Simulate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
         };
@@ -349,7 +349,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret>
         trace
     }
 
-    fn generate(&mut self, args: Args, constraints: Trie<(Rc<dyn Any>,f64)>) -> (Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret>, f64) {
+    fn generate(&self, args: Args, constraints: Trie<(Rc<dyn Any>,f64)>) -> (Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret>, f64) {
         let mut state = TrieFnState::Generate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
             weight: 0.,
@@ -362,7 +362,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret>
         (trace, weight)
     }
 
-    fn update(&mut self,
+    fn update(&self,
         trace: Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret>,
         args: Args,
         _: GfDiff,

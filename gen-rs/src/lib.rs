@@ -7,6 +7,13 @@
 // #![feature(map_try_insert)]
 // #![feature(unboxed_closures)]
 // #![feature(fn_traits)]
+#![feature(local_key_cell_methods)]
+
+use std::cell::RefCell;
+use rand::rngs::ThreadRng;
+
+thread_local!(pub static GLOBAL_RNG: RefCell<ThreadRng> = RefCell::new(ThreadRng::default()));
+
 
 pub mod gfi;
 pub mod trie;

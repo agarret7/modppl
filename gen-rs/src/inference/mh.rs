@@ -1,8 +1,7 @@
 use std::rc::{Rc,Weak};
 use approx;
-use rand::{Rng, rngs::ThreadRng};
-use rand::distributions::Uniform;
-use crate::{Trace,GenFn,GfDiff::NoChange};
+use rand::{Rng, distributions::Uniform};
+use crate::{GLOBAL_RNG,Trace,GenFn,GfDiff::NoChange};
 
 
 pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: 'static,ProposalArgs: Clone>(
@@ -17,7 +16,7 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: 'sta
     let trace = Rc::new(trace);
     let proposal_args_forward = (Rc::downgrade(&trace), proposal_args.clone());
     let (fwd_choices, fwd_weight) = proposal.propose(proposal_args_forward);
-    let mut trace = Rc::into_inner(trace).unwrap();
+    let trace = Rc::into_inner(trace).unwrap();
 
     let args = trace.args.clone();
     let (trace, discard, weight) = model.update(trace, args.clone(), NoChange, fwd_choices);
@@ -32,7 +31,7 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: 'sta
     // dbg!(bwd_weight);
 
     let alpha = weight - fwd_weight + bwd_weight;
-    if model.rng().sample(Uniform::new(0_f64, 1_f64)).ln() < alpha {
+    if GLOBAL_RNG.with_borrow_mut(|rng| rng.sample(Uniform::new(0_f64, 1_f64)).ln()) < alpha {
         (trace, true)
     } else {
         (trace, _, _) = model.update(trace, args, NoChange, bwd_choices);
