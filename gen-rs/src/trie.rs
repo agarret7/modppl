@@ -1,5 +1,5 @@
 use std::ops::Index;
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map};
 use crate::{SplitAddr};
 use SplitAddr::{Prefix,Term};
 
@@ -20,6 +20,62 @@ impl<V> Trie<V> {
 
     pub fn is_empty(&self) -> bool {
         self.leaf_nodes.is_empty() && self.internal_nodes.is_empty()
+    }
+
+    pub fn has_leaf_node(&self, addr: &str) -> bool {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.leaf_nodes.contains_key(addr)
+            }
+            Prefix(first, rest) => {
+                if self.internal_nodes.contains_key(first) {
+                    self.internal_nodes[first].has_leaf_node(rest)
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    pub fn get_leaf_node(&self, addr: &str) -> Option<&V> {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.leaf_nodes.get(addr)
+            }
+            Prefix(first, rest) => {
+                self.internal_nodes[first].get_leaf_node(rest)
+            }
+        }
+    }
+
+    pub fn insert_leaf_node(&mut self, addr: &str, value: V) -> Option<V> {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.leaf_nodes.insert(addr.to_string(), value)
+            }
+            Prefix(first, rest) => {
+                let node = self.internal_nodes
+                    .entry(first.to_string())
+                    .or_insert(Trie::new());
+                node.insert_leaf_node(rest, value)
+            }
+        }
+    }
+
+    pub fn remove_leaf_node(&mut self, addr: &str) -> Option<V> {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.leaf_nodes.remove(addr)
+            }
+            Prefix(first, rest) => {
+                let node = self.internal_nodes.get_mut(first).unwrap();
+                node.remove_leaf_node(rest)
+            }
+        }
+    }
+
+    pub fn leaf_iter(&self) -> hash_map::Iter<'_, String, V> {
+        self.leaf_nodes.iter()
     }
 
     pub fn has_internal_node(&self, addr: &str) -> bool {
@@ -77,77 +133,30 @@ impl<V> Trie<V> {
         }
     }
 
-    pub fn has_leaf_node(&self, addr: &str) -> bool {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.contains_key(addr)
-            }
-            Prefix(first, rest) => {
-                if self.internal_nodes.contains_key(first) {
-                    self.internal_nodes[first].has_leaf_node(rest)
-                } else {
-                    false
-                }
-            }
-        }
+    pub fn internal_iter(&self) -> hash_map::Iter<'_, String, Trie<V>> {
+        self.internal_nodes.iter()
     }
 
-    pub fn get_leaf_node(&self, addr: &str) -> Option<&V> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.get(addr)
-            }
-            Prefix(first, rest) => {
-                self.internal_nodes[first].get_leaf_node(rest)
-            }
+    pub fn merge(mut self, other: Self) -> Self {
+        for (addr, value) in other.leaf_nodes.into_iter() {
+            self.insert_leaf_node(&addr, value);
         }
-    }
-
-    pub fn insert_leaf_node(&mut self, addr: &str, value: V) -> Option<V> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.insert(addr.to_string(), value)
-            }
-            Prefix(first, rest) => {
-                let node = self.internal_nodes
-                    .entry(first.to_string())
-                    .or_insert(Trie::new());
-                node.insert_leaf_node(rest, value)
-            }
+        for (addr, subtrie) in other.internal_nodes.into_iter() {
+            self.insert_internal_node(&addr, subtrie);
         }
-    }
-
-    pub fn remove_leaf_node(&mut self, addr: &str) -> Option<V> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.remove(addr)
-            }
-            Prefix(first, rest) => {
-                let node = self.internal_nodes.get_mut(first).unwrap();
-                node.remove_leaf_node(rest)
-            }
-        }
+        self
     }
 }
 
 impl<V> Trie<(V,f64)> {
-    pub fn sum_internal_node(&self, addr: &str) -> f64 {
-        match self.get_internal_node(addr) {
-            Some(internal_node) => {
-                internal_node.sum()
-            }
-            None => { 0. }
-        }
-    }
-
     pub fn sum(&self) -> f64 {
         self.internal_nodes.values().fold(0., |acc, t| acc + t.sum()) +
         self.leaf_nodes.values().fold(0., |acc, v| acc + v.1)
     }
 
-    pub fn unweighted(self) -> Trie<V> {
+    pub fn into_unweighted(self) -> Trie<V> {
         Trie {
-            internal_nodes: self.internal_nodes.into_iter().map(|(addr, t)| (addr, t.unweighted())).collect::<_>(),
+            internal_nodes: self.internal_nodes.into_iter().map(|(addr, t)| (addr, t.into_unweighted())).collect::<_>(),
             leaf_nodes: self.leaf_nodes.into_iter().map(|(addr, v)| (addr, v.0)).collect::<_>()
         }
     }
@@ -167,28 +176,3 @@ impl<V> Index<&str> for Trie<V> {
         self.get_leaf_node(index).unwrap()
     }
 }
-
-
-// impl<V> Addr for Trie<V> {
-//     type V = V;
-
-//     fn empty() -> Self {
-//         Trie::new()
-//     }
-
-//     fn get_submap(&self, addr: String) -> Option<&Self> {
-//         self.get_internal_node(addr)
-//     }
-
-//     fn insert_submap(&mut self, addr: String, submap: Self) -> Option<Self> {
-//         self.insert_internal_node(addr, submap)
-//     }
-
-//     fn get_value(&self, addr: String) -> Option<&Self::V> {
-//         self.get_leaf_node(addr)
-//     }
-
-//     fn insert_value(&mut self, addr: String, value: Self::V) -> Option<Self::V> {
-//         self.insert_leaf_node(addr, value)
-//     }
-// }

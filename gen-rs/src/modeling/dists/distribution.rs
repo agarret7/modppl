@@ -30,11 +30,11 @@ impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
     }
 
     fn update(&mut self,
-            trace: &mut Trace<U,Sample<T>,T>,
+            trace: Trace<U,Sample<T>,T>,
             args: U,
             diff: GfDiff,
             constraints: Sample<T>
-        ) -> (Sample<T>, f64) {
+        ) -> (Trace<U,Sample<T>,T>, Sample<T>, f64) {
         panic!("not implemented")
     }
 }

@@ -16,7 +16,7 @@ impl Distribution<Point,Bounds> for Uniform2D {
         return if b.xmin <= p[0] && p[0] <= b.xmax && b.ymin <= p[1] && p[1] <= b.ymax {
             -((b.xmax - b.xmin) as f64 * (b.ymax - b.ymin) as f64).ln()
         } else {
-            -f64::INFINITY
+            f64::NEG_INFINITY
         }
     }
 

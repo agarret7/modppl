@@ -15,12 +15,7 @@ impl<Args: 'static,Data: 'static,Ret: 'static> Trace<Args,Data,Ret> {
         Trace { args, data, retv: Some(retv), logp }
     }
 
-    pub fn get_args(&self) -> &Args { &self.args }
-    pub fn get_data(&self) -> &Data { &self.data }
-    pub fn get_data_mut(&mut self) -> &mut Data { &mut self.data }
-    pub fn get_retv(&self) -> Option<&Ret> { self.retv.as_ref() }
     pub fn set_retv(&mut self, v: Ret) { self.retv = Some(v); }
-    pub fn logpdf(&self) -> f64 { self.logp }
 }
 
 pub trait GenFn<Args,Data,Ret> {
@@ -29,11 +24,11 @@ pub trait GenFn<Args,Data,Ret> {
     fn generate(&mut self, args: Args, constraints: Data) -> (Trace<Args,Data,Ret>, f64);
 
     fn update(&mut self,
-        trace: &mut Trace<Args,Data,Ret>,
+        trace: Trace<Args,Data,Ret>,
         args: Args,
         diff: GfDiff,
         constraints: Data  // forward choices
-    ) -> (Data, f64);      // backward choices
+    ) -> (Trace<Args,Data,Ret>, Data, f64);      // backward choices
 
 
     fn call(&mut self, args: Args) -> Ret {
