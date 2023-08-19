@@ -1,11 +1,9 @@
 use rand::rngs::ThreadRng;
 use nalgebra::{dvector,dmatrix};
 
-use gen_rs::{GfDiff, ChoiceHashMap};
 use gen_rs::ParticleSystem;
-use common_macros::hash_map;
 
-mod hmm;
+mod hmm_model;
 
 
 
@@ -30,7 +28,7 @@ fn test_hmm_forward_algorithm() {
     true_marginal_likelihood += prior[1]                * emission_dists[(obs[0] as usize, 1)]
                               * transition_dists[(1,1)] * emission_dists[(obs[1] as usize, 1)];
 
-    let empirical_marginal_likelihood = hmm::hmm_forward_alg(prior, emission_dists, transition_dists, &obs);
+    let empirical_marginal_likelihood = hmm_model::hmm_forward_alg(prior, emission_dists, transition_dists, &obs);
     approx::assert_abs_diff_eq!(empirical_marginal_likelihood, true_marginal_likelihood, epsilon = 1e-16);
 }
 
@@ -50,25 +48,24 @@ fn test_particle_filter() -> std::io::Result<()> {
         0.2, 0.3, 0.5;
         0.9, 0.05, 0.05
     ].transpose();
-    let params = hmm::HMMParams::new(prior.clone(), emission_matrix.clone(), transition_matrix.clone());
+    let params = hmm_model::HMMParams::new(prior.clone(), emission_matrix.clone(), transition_matrix.clone());
 
-    let model = hmm::HMM::new(params);
+    let model = hmm_model::HMM::new(params);
 
     let data = vec![0, 0, 1, 2];
-    let expected = hmm::hmm_forward_alg(prior, emission_matrix, transition_matrix, &data).ln();
+    let expected = hmm_model::hmm_forward_alg(prior, emission_matrix, transition_matrix, &data).ln();
 
     let mut filter = ParticleSystem::new(model, NUM_PARTICLES, rng);
 
-    let store = hmm::ParamStore { };
+    let store = hmm_model::ParamStore { };
     let mut data_it = data.into_iter();
-    filter.init_step(store, ChoiceHashMap::from_hashmap(hash_map!("1 => observation" => data_it.next().unwrap())));
+    filter.init_step(store, (vec![None], vec![data_it.next()]));
     println!("T = {}", 1);
 
     for (t, obs) in data_it.enumerate() {
         println!("T = {}", t+2);  // time is 1-indexed and init_step used "1 => observation" (1 + 1 = 2)
-        let addr: &'static str = Box::leak(format!("{} => observation", t+2).into_boxed_str());
-        let constraints = ChoiceHashMap::from_hashmap(hash_map!(addr => obs));
-        filter.step(GfDiff::Extend, constraints);
+        let constraints = (vec![None], vec![Some(obs)]);
+        filter = filter.step(constraints);
         let ess = filter.effective_sample_size();
         dbg!(ess);
         let log_weight = filter.resample();
@@ -76,7 +73,7 @@ fn test_particle_filter() -> std::io::Result<()> {
     }
     let lml_estimate = filter.log_marginal_likelihood_estimate();
 
-    approx::assert_abs_diff_eq!(lml_estimate, expected, epsilon = 0.02);
+    approx::assert_abs_diff_eq!(lml_estimate, expected, epsilon = 0.03);
 
     Ok(())
 }

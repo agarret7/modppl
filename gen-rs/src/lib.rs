@@ -1,26 +1,54 @@
-#![feature(return_position_impl_trait_in_trait)]
-#![feature(associated_type_defaults)]
-#![feature(associated_const_equality)]
-#![feature(closure_lifetime_binder)]
-#![feature(anonymous_lifetime_in_impl_trait)]
-#![feature(box_into_inner)]
+//! `gen_rs` is a a library for general-purpose, low-level probabilistic modeling and inference.
+//! Modeling and inference are separated by a trait interface, called `GenFn`.
+//! 
+//! Any function that implements `GenFn` (representing a Bayesian model) can use and compose
+//! any inference procedure in the standard inference library.
 
+#![deny(missing_docs)]
+#![allow(non_upper_case_globals)]
+
+extern crate approx;
+extern crate nalgebra;
+extern crate rand;
+extern crate regex;
+
+
+use std::cell::RefCell;
+use rand::rngs::ThreadRng;
+
+
+thread_local!(
+    /// Forked PRNG, accessible as a static crate-level thread-local constant. (Use like `GLOBAL_RNG.with_borrow_mut(|rng| { ... })`).
+    pub static GLOBAL_RNG: RefCell<ThreadRng> = RefCell::new(ThreadRng::default())
+);
+
+
+/// Definition of the Generative Function Interface (GFI).
 pub mod gfi;
-pub mod choices;
+
+/// Utilities for parsing addresses (special keys used in the `Trie` data structure).
+pub mod address;
+
+/// Implementations of the `Trie` data structure, used extensively in `modeling::triefn`. 
+pub mod trie;
+
+/// Distributions and a modeling DSL built on `Trie`s.
 pub mod modeling;
+
+/// Standard inference library.
 pub mod inference;
-pub mod mathutils;
 
-// modeling interface
-pub use modeling::dists;
-pub use gfi::Addr;
-pub use gfi::ChoiceBuffer;
-pub use gfi::Trace;
-pub use gfi::GenerativeFunction;
-pub use gfi::GfDiff;
-pub use choices::ChoiceHashMap;
+mod mathutils;
 
-// inference interface
+// modeling libs
+pub use trie::Trie;
+pub use address::{SplitAddr, normalize_addr};
+pub use gfi::{Trace, GenFn, GfDiff};
+pub use modeling::dists::{u01,Distribution,bernoulli,categorical,normal,mvnormal};
+pub use modeling::triefn::{TrieFn,TrieFnState};
+pub use mathutils::logsumexp;
+
+// inference libs
 pub use inference::importance_sampling;
 pub use inference::metropolis_hastings;
 pub use inference::mh;

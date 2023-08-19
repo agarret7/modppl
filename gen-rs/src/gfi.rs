@@ -1,67 +1,103 @@
-use rand::rngs::ThreadRng;
-use std::rc::Rc;
-use std::any::Any;
+/// Representation of the probabilistic execution of a `GenFn`.
+#[derive(Clone)]
+pub struct Trace<Args,Data,Ret> {
+    /// Input arguments to the `GenFn`.
+    pub args: Args,
 
+    /// Random variables sampled by the `GenFn`.
+    pub data: Data,
 
-pub type Addr = &'static str;
+    /// The return value of the `GenFn`.
+    /// Always `Some(v)` if the `Trace` is returned by a GFI method.
+    pub retv: Option<Ret>,
 
-
-pub trait ChoiceBuffer : Clone {
-    type V: Any;
-
-    // Q: can we avoid compile-time choice value types?
-    // `Self::V` causes an ugly runtime motif in GF implementations:
-
-    //     let obs_choice = (constraints.get_value("obs") as &dyn Any)
-    //         .downcast_ref::<Rc<V>>()
-    //         .unwrap()
-    //         .clone();
-
-    fn has_value(&self, k: Addr) -> bool;
-    fn get_value(&self, k: Addr) -> &Rc<Self::V>;
-    fn set_value(&mut self, k: Addr, v: &Rc<Self::V>);
+    /// The log joint probability of all the data `log[p(data; args)]`.
+    pub logp: f64
 }
 
 
-pub trait Trace {
-    type X;
-    type T;
+impl<Args: 'static,Data: 'static,Ret: 'static> Trace<Args,Data,Ret> {
+    /// Create a `Trace` with a `Some(retv)`.
+    pub fn new(args: Args, data: Data, retv: Ret, logp: f64) -> Self {
+        Trace { args, data, retv: Some(retv), logp }
+    }
 
-    fn get_args(&self) -> &Self::X;
-    fn get_retval(&self) -> &Self::T;
-    fn get_choices(&self) -> impl ChoiceBuffer;
-    fn get_score(&self) -> f64;
-    fn set_score(&mut self, new_score: f64);
+    /// Set `self.retv` to `Some(v)`.
+    pub fn set_retv(&mut self, v: Ret) { self.retv = Some(v); }
 }
 
 
-pub trait GenerativeFunction {
-    type X;
-    type T;
-    type U: Trace<T=Self::T>;
+/// Interface for functions that support the standard inference library.
+/// 
+/// Implementation follows closely to the Generative Function Interface (GFI), as specified in:
+/// 
+/// > Gen: A General-Purpose Probabilistic Programming System with Programmable Inference.
+/// > Cusumano-Towner, M. F.; Saad, F. A.; Lew, A.; and Mansinghka, V. K.
+/// > In Proceedings of the 40th ACM SIGPLAN Conference on Programming Language
+/// > Design and Implementation (PLDI ‘19).
+/// 
+/// Any function that implements `GenFn` can use the standard inference library
+/// to perform Bayesian inference to generate fair samples from the posterior distribution.
+///     
+/// `p(trace) ~ p( . | constraints)`
+/// 
+/// This terminology may be slightly unusual to users from other languages;
+/// `data` refers to all random variables, and `constraints` more precisely
+/// refers to a subset of the data that we observe. 
+pub trait GenFn<Args,Data,Ret> {
 
-    fn simulate(&self, rng: &mut ThreadRng, args: Self::X) -> Self::U;
-    fn generate(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> Self::U;
+    /// Execute the generative function and return a sampled trace.
+    fn simulate(&self, args: Args) -> Trace<Args,Data,Ret>;
 
-    fn propose(&self, rng: &mut ThreadRng, args: Self::X) -> (impl ChoiceBuffer, f64);
-    fn assess(&self, rng: &mut ThreadRng, args: Self::X, constraints: impl ChoiceBuffer) -> f64;
+    /// Execute the generative function consistent with `constraints`.
+    /// Return the log probability 
+    ///     `log[p(t; args) / q(t; constraints, args)]`
+    fn generate(&self, args: Args, constraints: Data) -> (Trace<Args,Data,Ret>, f64);
 
+    /// Update a trace
     fn update(&self,
-        rng: &mut ThreadRng,
-        trace: &mut Self::U,
-        args: Self::X,
+        trace: Trace<Args,Data,Ret>,
+        args: Args,
         diff: GfDiff,
-        constraints: impl ChoiceBuffer  // forward choices
-    ) -> impl ChoiceBuffer;             // backward choices
+        constraints: Data                    // Data := forward choices
+    ) -> (Trace<Args,Data,Ret>, Data, f64);  // Data := backward choices
+
+
+    /// Call a generative function and return the output.
+    fn call(&self, args: Args) -> Ret {
+        self.simulate(args).retv.unwrap()
+    }
+
+    /// Use a generative function to propose some data.
+    fn propose(&self, args: Args) -> (Data, f64) {
+        let trace = self.simulate(args);
+        (trace.data, trace.logp)
+    }
+
+    /// Assess the conditional probability of some proposed `constraints` under a generative function.
+    fn assess(&self, args: Args, constraints: Data) -> f64 {
+        let (_, weight) = self.generate(args, constraints);
+        weight
+    }
+
 }
 
 
-// TODO: extend the semantics to support variable-length input and per-argument diffs. This is challenging. See:
-// - https://soasis.org/posts/a-mirror-for-rust-a-plan-for-generic-compile-time-introspection-in-rust/#variadics-do-not-exist-in-rust 
-// - https://internals.rust-lang.org/t/analysis-pre-rfc-variadic-generics-in-rust/13879
+/// Flag that gives information about the type of incremental difference a generative
+/// function can expect to a `Trace`'s arguments during an update.
+/// 
+/// Can be used to increase efficiency for example in particle filter procedures.
 #[derive(Debug,Clone)]
 pub enum GfDiff {
+    /// No change to input arguments.
     NoChange,
+
+    /// An unknown change to input arguments.
     Unknown,
+
+    /// An incremental change to input arguments.
+    /// 
+    /// Generally means the `trace` has a vector-valued
+    /// `data` field that is being pushed to.
     Extend
 }

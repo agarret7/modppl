@@ -4,11 +4,14 @@ use std::f64::consts::PI;
 use nalgebra::{DVector,DMatrix};
 
 
+/// Multivariate Gaussian distribution type
 pub struct MvNormal { }
+
+/// Instantiation of the Multivariate Gaussian distribution
 pub const mvnormal: MvNormal = MvNormal { };
 
-impl Distribution<DVector<f64>,(&DVector<f64>,&DMatrix<f64>)> for MvNormal {
-    fn logpdf(&self, x: &DVector<f64>, params: (&DVector<f64>,&DMatrix<f64>)) -> f64 {
+impl Distribution<DVector<f64>,(DVector<f64>,DMatrix<f64>)> for MvNormal {
+    fn logpdf(&self, x: &DVector<f64>, params: (DVector<f64>,DMatrix<f64>)) -> f64 {
         let (mu, cov) = params;
         let k = mu.len() as f64;
         let cov_det = cov.determinant();
@@ -18,7 +21,7 @@ impl Distribution<DVector<f64>,(&DVector<f64>,&DMatrix<f64>)> for MvNormal {
         -(k*(2.*PI).ln() + cov_det.ln() + mahalanobis_squared)/2.
     }
 
-    fn random(&self, rng: &mut ThreadRng, params: (&DVector<f64>,&DMatrix<f64>)) -> DVector<f64> {
+    fn random(&self, rng: &mut ThreadRng, params: (DVector<f64>,DMatrix<f64>)) -> DVector<f64> {
         let (mu, cov) = params;
         let transform: DMatrix<f64>;
         match cov.clone().cholesky() {

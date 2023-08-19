@@ -8,8 +8,8 @@ use nalgebra::dvector;
 use rand::rngs::ThreadRng;
 // use serde_json;
 
-pub mod pointed;
-use pointed::types_2d::{Bounds,Point};
+pub mod pointed_model;
+use pointed_model::types_2d::{Bounds,Point};
 
 
 // difficult filtering problem

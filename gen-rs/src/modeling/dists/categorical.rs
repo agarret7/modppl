@@ -3,7 +3,10 @@ use approx;
 use super::{Distribution,u01};
 
 
+/// Categorical distribution type
 pub struct Categorical { }
+
+/// Instantiation of the categorical distribution
 pub const categorical: Categorical = Categorical { };
 
 impl Distribution<usize,Vec<f64>> for Categorical {

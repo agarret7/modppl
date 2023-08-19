@@ -3,7 +3,10 @@ use super::{Distribution,u01};
 use std::f64::consts::PI;
 
 
+/// Gaussian distribution type
 pub struct Normal { }
+
+/// Instantiation of the Gaussian distribution
 pub const normal: Normal = Normal { };
 
 impl Distribution<f64,(f64,f64)> for Normal {
