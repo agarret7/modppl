@@ -55,7 +55,7 @@ def plot_metropolis_hastings():
 
 def plot_hierarchical_model():
     fig, ax = plt.subplots()
-    ax.set_title("Hierarchical model")
+    ax.set_title("Hierarchical model (custom MCMC proposal)")
 
     with open("data/hierarchical_data.json") as fp:
         data = json.load(fp)
