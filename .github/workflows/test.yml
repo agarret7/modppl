@@ -25,5 +25,5 @@ jobs:
     - run: cargo test --verbose
     - run: cargo doc --no-deps
     - run: rm -rf ./docs
-    - run: echo "<meta http-equiv=\"refresh\" content=\"0; url=build_wheel\">" > target/doc/index.html
+    - run: echo "<meta http-equiv=\"refresh\" content=\"0; url=gen_rs/index.html\">" > target/doc/index.html
     - run: cp -r target/doc ./docs
