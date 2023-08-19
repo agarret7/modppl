@@ -86,6 +86,8 @@ pub fn test_importance_triefn() {
 
 #[test]
 pub fn test_importance_hierarchical() -> std::io::Result<()> {
+    create_dir_all("../data")?;
+
     const NUM_SAMPLES: u32 = 10000;
     let mut rng = ThreadRng::default();
 

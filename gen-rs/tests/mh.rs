@@ -47,6 +47,8 @@ fn test_metropolis_hastings_handcoded() -> std::io::Result<()> {
 
 #[test]
 pub fn test_metropolis_hastings_triefn() -> std::io::Result<()> {
+    create_dir_all("../data")?;
+
     const NUM_ITERS: u32 = 25000;
 
     let bounds = Bounds { xmin: -5., xmax: 5., ymin: -5., ymax: 5. };
@@ -73,6 +75,8 @@ pub fn test_metropolis_hastings_triefn() -> std::io::Result<()> {
 
 #[test]
 pub fn test_metropolis_hastings_hierarchical() -> std::io::Result<()> {
+    create_dir_all("../data")?;
+
     let mut rng = ThreadRng::default();
 
     let xs = vec![-5.,-4.,-3.,-2.,-1.,0.,1.,2.,3.,4.,5.];
