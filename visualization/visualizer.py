@@ -53,7 +53,26 @@ def plot_metropolis_hastings():
     plt.legend()
     plt.savefig("visualization/mh.png")
 
+def plot_hierarchical_model():
+    fig, ax = plt.subplots()
+    ax.set_title("Hierarchical model")
+
+    with open("data/hierarchical_data.json") as fp:
+        data = json.load(fp)
+
+    with open("data/hierarchical_model.json") as fp:
+        all_coeffs = json.load(fp)
+    
+    ax.scatter(data[0], data[1])
+
+    for coeffs in all_coeffs:
+        c = "pink" if len(coeffs) == 2 else "blue"
+        ax.plot(data[0], [sum(c * x**i for (i, c) in enumerate(coeffs)) for x in data[0]], c=c, alpha=0.1)
+
+    plt.savefig("visualization/hierarchical.png")
+
 
 if __name__ == "__main__":
     plot_importance_sampling()
     plot_metropolis_hastings()
+    plot_hierarchical_model()

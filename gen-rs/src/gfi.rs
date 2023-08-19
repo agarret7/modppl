@@ -39,7 +39,7 @@ impl<Args: 'static,Data: 'static,Ret: 'static> Trace<Args,Data,Ret> {
 /// Any function that implements `GenFn` can use the standard inference library
 /// to perform Bayesian inference to generate fair samples from the posterior distribution.
 ///     
-///     p(trace) ~ p( . | constraints).
+/// `p(trace) ~ p( . | constraints)`
 /// 
 /// This terminology may be slightly unusual to users from other languages;
 /// `data` refers to all random variables, and `constraints` more precisely
