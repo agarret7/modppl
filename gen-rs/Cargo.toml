@@ -7,7 +7,6 @@ keywords = ["statistics", "ppl", "mcmc", "importance-sampling", "particle-filter
 categories = ["science", "simulation"]
 readme = "../README.md"
 license = "MIT"
-license-file = "LICENSE"
 repository = "https://github.com/agarret7/gen-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
