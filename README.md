@@ -1,6 +1,9 @@
 # gen-rs
 
-![status](https://github.com/agarret7/gen-rs/actions/workflows/test.yml/badge.svg)
+[<img alt="github" src="https://img.shields.io/badge/agarret7/gen-rs?style=for-the-badge&labelColor=555555&logo=github" height="20">](https://github.com/agarret7/gen-rs)
+[<img alt="crates.io" src="https://img.shields.io/crates/v/gen-rs.svg?style=for-the-badge&color=fc8d62&logo=rust" height="20">](https://crates.io/crates/gen-rs)
+[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-gen_rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/gen-rs)
+[<img alt="status" src="https://img.shields.io/github/actions/workflow/status/agarret7/gen-rs/test.yml?branch=main&style=for-the-badge" height="20">](https://github.com/agarret7/gen-rs/actions?query=branch%3Amain)
 
 gen-rs is a general-purpose framework for probabilistic programming, written in Rust. gen-rs generalizes many features of other Rust-native probabilistic programming systems such as [ferric](https://github.com/ferric-ai/ferric), and is written at a lower-level than languages such as [Gen.jl](https://github.com/probcomp/Gen.jl).
 
