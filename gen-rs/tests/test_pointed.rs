@@ -1,8 +1,9 @@
-mod pointed;
-use pointed::types_2d;
+mod pointed_model;
+use pointed_model::types_2d;
 use rand::rngs::ThreadRng;
 use nalgebra::dvector;
-use gen_rs::dists::Distribution;
+
+use gen_rs::Distribution;
 
 
 #[test]

@@ -4,7 +4,10 @@ use std::f64::consts::PI;
 use nalgebra::{DVector,DMatrix};
 
 
+/// Multivariate Gaussian distribution type
 pub struct MvNormal { }
+
+/// Instantiation of the Multivariate Gaussian distribution
 pub const mvnormal: MvNormal = MvNormal { };
 
 impl Distribution<DVector<f64>,(DVector<f64>,DMatrix<f64>)> for MvNormal {

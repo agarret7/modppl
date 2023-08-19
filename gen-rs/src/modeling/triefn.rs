@@ -1,36 +1,52 @@
 use std::rc::Rc;
-use rand::rngs::ThreadRng;
-
-// use super::{Rc<dyn Any>};
 use std::any::Any;
 use crate::modeling::dists::Distribution;
 use crate::{GLOBAL_RNG, Trie, GenFn, GfDiff, Trace};
 
+
+/// Incremental computational state of a `trace` during the execution of the different `GenFn` methods with a `TrieFn`.
 pub enum TrieFnState<A,T> {
+    /// State for executing `GenFn::simulate` in a `TrieFn`.
     Simulate {
+        ///
         trace: Trace<A,Trie<(Rc<dyn Any>,f64)>,T>,
     },
+
+    /// State for executing `GenFn::generate` in a `TrieFn`.
     Generate {
+        ///
         trace: Trace<A,Trie<(Rc<dyn Any>,f64)>,T>,
+        ///
         weight: f64,
+        ///
         constraints: Trie<Rc<dyn Any>>,
     },
+
+    /// State for executing `GenFn::update` in a `TrieFn`.
     Update {
+        ///
         trace: Trace<A,Trie<(Rc<dyn Any>,f64)>,T>,
+        ///
         constraints: Trie<Rc<dyn Any>>,
+        ///
         weight: f64,
+        ///
         discard: Trie<Rc<dyn Any>>,
-        visitor: AddrVisitor
+        ///
+        visitor: AddrTrie
     }
 }
 
-pub type AddrVisitor = Trie<()>;
+/// Trie for hierarchical address schemas (without values).
+pub type AddrTrie = Trie<()>;
 
-impl AddrVisitor {
+impl AddrTrie {
+    /// Add an address to the `AddrTrie`.
     pub fn visit(&mut self, addr: &str) {
         self.insert_leaf_node(addr, ());
     }
 
+    /// Return `true` if every `addr` in `data` is also present in `self`.
     pub fn all_visited<T>(&self, data: &Trie<T>) -> bool {
         let mut allvisited = true;
         for (addr, _) in data.leaf_iter() {
@@ -45,6 +61,7 @@ impl AddrVisitor {
         allvisited
     }
 
+    /// Return the `AddrTrie` that contains all addresses present in `data`, but not present in `self`.
     pub fn get_unvisited<V>(&self, data: &Trie<V>) -> Self {
         let mut unvisited = Trie::new();
         for (addr, _) in data.leaf_iter() {
@@ -62,6 +79,7 @@ impl AddrVisitor {
         unvisited
     }
 
+    /// Return the unique `AddrTrie` that contains an `addr` if and only if `data` contains that `addr`.
     pub fn schema<V>(data: &Trie<V>) -> Self {
         let mut visitor = Trie::new();
         for (addr, _) in data.leaf_iter() {
@@ -75,6 +93,9 @@ impl AddrVisitor {
 }
 
 impl<A: 'static,T: 'static> TrieFnState<A,T> {
+    /// Sample a random value from a distribution and insert it into the `self.trace.data` trie as a weighted leaf node.
+    /// 
+    /// Return the cloned sampled value.
     pub fn sample_at<
         V: Clone + 'static,
         W: Clone + 'static
@@ -173,10 +194,16 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
         }
     }
 
+    /// Recursively sample a trace from another `gen_fn`.
+    /// 
+    /// Insert its `data` trie as a weighted internal node of the current `trace` data trie.
+    /// Insert its `retv` as a (zero-weighted) leaf node of the current `trace` data trie.
+    /// 
+    /// Return the cloned `retv`.
     pub fn trace_at<
         X: Clone + 'static,
         Y: Clone + 'static,
-    >(&mut self, mut gen_fn: impl GenFn<X,Trie<(Rc<dyn Any>,f64)>,Y>, args: X, addr: &str) -> Y {
+    >(&mut self, gen_fn: &impl GenFn<X,Trie<(Rc<dyn Any>,f64)>,Y>, args: X, addr: &str) -> Y {
         match self {
             TrieFnState::Simulate {
                 trace,
@@ -240,8 +267,10 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                     prev_subtrie = data.remove_internal_node(addr).unwrap();
                     if constrained {
                         let subconstraints = Trie::from_unweighted(constraints.remove_internal_node(addr).unwrap());
+                        // in case constraints came from a proposal
+                        constraints.remove_leaf_node(addr);
                         let prev_logp = prev_subtrie.sum();
-                        // note: the args in the subtrace are technically incorrect (should be from
+                        // note: the args in the subtrace are technically incorrect (they should be from
                         // the previous call) and update only works because we completely disregard them.
                         let subtrace = Trace { args: args.clone(), data: prev_subtrie, retv: None, logp: prev_logp };
                         let (subtrace, subdiscard, new_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, subconstraints);
@@ -280,12 +309,12 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 
     fn _gc(
         mut trie: Trie<(Rc<dyn Any>,f64)>,
-        unvisited: &AddrVisitor,
+        unvisited: &AddrTrie,
     ) -> (Trie<(Rc<dyn Any>,f64)>,Trie<Rc<dyn Any>>,f64) {
         let mut garbage = Trie::new();
         let mut garbage_weight = 0.;
         // todo: profile this and make more efficient (eg. with Merkle trees)
-        if &AddrVisitor::schema(&trie) == unvisited {
+        if &AddrTrie::schema(&trie) == unvisited {
             garbage_weight = trie.sum();
             garbage = trie.into_unweighted();
             trie = Trie::new();
@@ -310,6 +339,9 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
         (trie, garbage, garbage_weight)
     }
 
+    /// For all `addr` present in `self.trace.data`, but not present in `self.visitor`, remove `addr` from `self.trace.data` and merge into `self.discard`.
+    /// 
+    /// Panics if `self` is not the `Self::Update` variant.
     pub fn gc(self) -> Self {
         if let Self::Update { trace, constraints, weight, discard, visitor } = self {
             let unvisited = visitor.get_unvisited(&trace.data);
@@ -327,11 +359,14 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 }
 
 
+/// Wrapper struct for functions that can use the TrieFn DSL (`sample_at` and `trace_at`) and automatically implement the GFI.
 pub struct TrieFn<A,T> {
-    func: fn(&mut TrieFnState<A,T>, A) -> T,
+    /// A random function that takes in a mutable reference to a `TrieFnState<A,T>` and some args `A`, effectfully mutates the state, and produces a value `T`.
+    pub func: fn(&mut TrieFnState<A,T>, A) -> T,
 }
 
 impl<Args,Ret> TrieFn<Args,Ret>{
+    /// Dynamically construct a `TrieFn` from a function at run-time.
     pub fn new(func: fn(&mut TrieFnState<Args,Ret>, Args) -> Ret) -> Self {
         TrieFn { func }
     }
@@ -373,11 +408,11 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret>
             weight: 0.,
             constraints: constraints.into_unweighted(),
             discard: Trie::new(),
-            visitor: AddrVisitor::new()
+            visitor: AddrTrie::new()
         };
         let retv = (self.func)(&mut state, args);
         let state = state.gc();  // add unvisited to discard
-        let TrieFnState::Update {mut trace, weight, constraints, discard, visitor} = state else { unreachable!() };
+        let TrieFnState::Update {mut trace, weight, constraints, discard, visitor: _visitor} = state else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.set_retv(retv);
         (trace, Trie::from_unweighted(discard), weight)

@@ -1,18 +1,10 @@
-use std::{collections::HashMap};
+use std::collections::HashMap;
 use nalgebra::{dvector,dmatrix};
 
 use rand::rngs::ThreadRng;
 use statistical::{mean, variance, standard_deviation};
 use approx;
-use gen_rs::{
-    modeling::dists::{
-        Distribution,
-        bernoulli,
-        normal,
-        mvnormal,
-        categorical
-    }
-};
+use gen_rs::{Distribution, bernoulli, normal, mvnormal, categorical};
 
 #[test]
 fn test_bernoulli() {

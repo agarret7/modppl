@@ -2,18 +2,26 @@ use regex::Regex;
 use std::cell::RefCell;
 
 
+/// Enum representing possible parse variants for an address that contain some number of `=>` separators.
 #[derive(Debug,PartialEq,Eq,Hash)]
 pub enum SplitAddr<'a> {
+    /// Resultant type from a parse of `(addr)`.
     Term(&'a str),
+
+    /// Resultant type from a parse of `first => (addr)`.
     Prefix(&'a str, &'a str)
 }
 use SplitAddr::{Prefix,Term};
 
-thread_local!(static RE: RefCell<Regex> = RefCell::new(Regex::new(r"^(.*?)=>(.*)$").ok().unwrap()));
+thread_local!(
+    /// Regex spec for address parsing.
+    static ADDR_RE: RefCell<Regex> = RefCell::new(Regex::new(r"^(.*?)=>(.*)$").ok().unwrap())
+);
 
 impl<'a> SplitAddr<'a> {
+    /// Parse a string address containing some number of `=>` separators into a `SplitAddr` variant.
     pub fn from_addr(addr: &'a str) -> Self {
-        match RE.with(|re| re.borrow().captures(&addr)) {
+        match ADDR_RE.with(|re| re.borrow().captures(&addr)) {
             None => {
                 Term(addr.trim_start().trim_end())
             },
@@ -26,6 +34,7 @@ impl<'a> SplitAddr<'a> {
     }
 }
 
+/// Normalize whitespace between `=>` separators in an `addr` to contain one space to the left and right of each separator.
 pub fn normalize_addr<'a>(addr: &'a str) -> String {
     match SplitAddr::from_addr(addr) {
         Term(s) => {

@@ -2,7 +2,10 @@ use rand::rngs::ThreadRng;
 use super::{Distribution,u01};
 
 
+/// Bernoulli distribution type
 pub struct Bernoulli { }
+
+/// Instantiation of the Bernoulli distribution
 pub const bernoulli: Bernoulli = Bernoulli { };
 
 impl Distribution<bool,f64> for Bernoulli {

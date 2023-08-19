@@ -2,8 +2,16 @@
 
 ![status](https://github.com/agarret7/gen-rs/actions/workflows/test.yml/badge.svg)
 
-This library contains highly-experimental (**pre-alpha**) explorations of probabilistic programming via "self-specializing Sequential Monte Carlo (SMC)" in Rust. Right now it consists of a few reference implementations of models implementing the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)) and a set of basic inference procedures.
+`gen-rs` is a general-purpose framework for probabilistic programming, written in Rust. `gen-rs` generalizes many features of other Rust-native probabistic programming systems such as `ferric`, and is written at a lower-level than languages such as `Gen.jl`.
 
+This library is highly-experimental (**alpha**). It implements the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf)), and a basic set of inference procedures.
+
+
+## Modeling Features
+
+- Generative Function Interface (GFI) compatible
+- Dynamically-typed `TrieFn` DSL
+- [Example model implementations](https://github.com/agarret7/gen-rs/blob/main/gen-rs/tests/triefns)
 
 ## Inference Features
 

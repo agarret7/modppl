@@ -1,5 +1,5 @@
 use rand::rngs::ThreadRng;
-use gen_rs::dists::{self, Distribution};
+use gen_rs::{Distribution,u01};
 use nalgebra::{DVector,dvector};
 
 
@@ -24,8 +24,8 @@ impl Distribution<Point,Bounds> for Uniform2D {
         assert!(b.xmax > b.xmin);
         assert!(b.ymax > b.ymin);
         dvector![
-            dists::u01(rng)*(b.xmax - b.xmin) + b.xmin,
-            dists::u01(rng)*(b.ymax - b.ymin) + b.ymin
+            u01(rng)*(b.xmax - b.xmin) + b.xmin,
+            u01(rng)*(b.ymax - b.ymin) + b.ymin
         ]
     }
 }

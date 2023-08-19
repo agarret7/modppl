@@ -1,13 +1,14 @@
 // mostly copied verbatim from: https://github.com/OpenGen/GenTL/blob/main/include/gentl/inference/particle_filter.h
 
 use rand::rngs::ThreadRng;
-use crate::{Trace,GenerativeFunction,ChoiceBuffer,GfDiff,dists::{self,Distribution}, mathutils::logsumexp};
+use crate::{Trace,GenFn,GfDiff,Distribution,categorical,mathutils::logsumexp};
 
-pub struct ParticleSystem<X: Copy,T,U: Trace<X=(i64,X),T=T> + Clone,F: GenerativeFunction<X=(i64,X),T=T,U=U>> {
+
+/// Basic particle filter for generative functions with a time parameter as the first input argument.
+pub struct ParticleSystem<Args: Clone,Data: Clone,Ret: Clone,F: GenFn<(i64,Args),Data,Ret>> {
     num_particles: usize,
     model: Box<F>,
-    traces: Vec<U>,
-    traces_tmp: Vec<Option<U>>,
+    traces: Vec<Trace<(i64,Args),Data,Ret>>,
 
     log_weights: Vec<f64>,
     log_normalized_weights: Vec<f64>,
@@ -20,7 +21,7 @@ pub struct ParticleSystem<X: Copy,T,U: Trace<X=(i64,X),T=T> + Clone,F: Generativ
     log_ml_estimate: f64
 }
 
-impl<X: Copy,T,U: Trace<X=(i64,X),T=T> + Clone,F: GenerativeFunction<X=(i64,X),T=T,U=U>> ParticleSystem<X,T,U,F> {
+impl<Args: Clone,Data: Clone,Ret: Clone,F: GenFn<(i64,Args),Data,Ret>> ParticleSystem<Args,Data,Ret,F> {
     fn normalize_weights(&mut self) -> f64 {
         let log_total_weight = logsumexp(&self.log_weights);
         for i in 0..self.num_particles {
@@ -33,16 +34,16 @@ impl<X: Copy,T,U: Trace<X=(i64,X),T=T> + Clone,F: GenerativeFunction<X=(i64,X),T
 
     fn multinomial_resampling(&mut self) {
         for i in 0..self.num_particles {
-            self.parents[i] = dists::categorical.random(&mut self.rng, self.normalized_weights.clone());
+            self.parents[i] = categorical.random(&mut self.rng, self.normalized_weights.clone());
         }
     }
 
+    /// Construct a new particle filter under the `model` with `num_particles` particles.
     pub fn new(model: F, num_particles: usize, rng: ThreadRng) -> Self {
         ParticleSystem {
             num_particles,
             model: Box::new(model),
             traces: vec![],
-            traces_tmp: vec![None; num_particles],
             log_weights: vec![0.; num_particles],
             log_normalized_weights: vec![0.; num_particles],
             two_times_log_normalized_weights: vec![0.; num_particles],
@@ -53,48 +54,66 @@ impl<X: Copy,T,U: Trace<X=(i64,X),T=T> + Clone,F: GenerativeFunction<X=(i64,X),T
         }
     }
 
+    /// Initialize the particle filter by generating `self.num_particles` traces from the `model` with `(1, args)`.
     pub fn init_step(
         &mut self,
-        args: X,
-        constraints: impl ChoiceBuffer
+        args: Args,
+        constraints: Data
     ) {
         for i in 0..self.num_particles {
-            let trace = self.model.generate(&mut self.rng, (1, args), constraints.clone());
+            let (trace, log_weight) = self.model.generate((1, args.clone()), constraints.clone());
             self.traces.push(trace);
-            self.log_weights[i] = self.traces[i].get_score();
+            self.log_weights[i] = log_weight;
         }
     }
 
-    pub fn step(&mut self, diff: GfDiff, constraints: impl ChoiceBuffer) {
-        for i in 0..self.traces.len() {
-            let args = *self.traces[i].get_args();
+    /// Extend the current filter from `t` to `t+1` with new `constraints`.
+    pub fn step(self, constraints: Data) -> Self {
+        let mut tmp_traces = vec![];
+        let mut tmp_log_weights = vec![];
+        for (i, trace) in self.traces.into_iter().enumerate() {
+            let args = trace.args.clone();
             let new_args = (args.0 + 1, args.1);
-            let old_score = self.traces[i].get_score();
-            self.model.update(&mut self.rng, &mut self.traces[i], new_args, diff.clone(), constraints.clone());
-            self.log_weights[i] += self.traces[i].get_score() - old_score;
+            let (new_trace, _, log_weight) = self.model.update(trace, new_args, GfDiff::Extend, constraints.clone());
+            tmp_traces.push(new_trace);
+            tmp_log_weights.push(self.log_weights[i] + log_weight);
+        }
+        ParticleSystem {
+            num_particles: self.num_particles,
+            model: self.model,
+            traces: tmp_traces,
+            log_weights: tmp_log_weights,
+            log_normalized_weights: self.log_normalized_weights,
+            two_times_log_normalized_weights: self.two_times_log_normalized_weights,
+            normalized_weights: self.normalized_weights,
+            parents: self.parents,
+            rng: self.rng,
+            log_ml_estimate: self.log_ml_estimate
         }
     }
 
+    /// Calculate the effective sample size (ESS) with the current paticle weights.
     pub fn effective_sample_size(&self) -> f64 {
         (-logsumexp(&self.two_times_log_normalized_weights)).exp()
     }
 
+    /// Perform multinomial resampling based on the normalized particle weights, and return the log total weight.
     pub fn resample(&mut self) -> f64 {
         let log_total_weight = self.normalize_weights();
         self.log_ml_estimate += log_total_weight - (self.num_particles as f64).ln();
 
         self.multinomial_resampling();
 
+        let mut tmp_traces = vec![];
         for i in 0..self.num_particles {
-            self.traces_tmp[i] = Some(self.traces[self.parents[i]].clone());
+            tmp_traces.push(self.traces[self.parents[i]].clone());
         }
-        for i in 0..self.num_particles {
-            self.traces[i] = self.traces_tmp[i].take().unwrap();
-        }
+        self.traces = tmp_traces;
         self.log_weights.fill(0.);
         log_total_weight
     }
 
+    /// Return the current log marginal likelihood estimate from the particles.
     pub fn log_marginal_likelihood_estimate(&self) -> f64 {
         self.log_ml_estimate + logsumexp(&self.log_weights) - (self.num_particles as f64).ln()
     }
