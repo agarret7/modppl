@@ -41,6 +41,19 @@ pub enum TrieFnState<A,T> {
 pub type AddrTrie = Trie<()>;
 
 impl AddrTrie {
+
+    /// Return the unique `AddrTrie` that contains an `addr` if and only if `data` contains that `addr`.
+    pub fn schema<V>(data: &Trie<V>) -> Self {
+        let mut visitor = Trie::new();
+        for (addr, _) in data.leaf_iter() {
+            visitor.insert_leaf_node(addr, ());
+        }
+        for (addr, inode) in data.internal_iter() {
+            visitor.insert_internal_node(addr, Self::schema(inode));
+        }
+        visitor
+    }
+
     /// Add an address to the `AddrTrie`.
     pub fn visit(&mut self, addr: &str) {
         self.insert_leaf_node(addr, ());
@@ -79,23 +92,12 @@ impl AddrTrie {
         unvisited
     }
 
-    /// Return the unique `AddrTrie` that contains an `addr` if and only if `data` contains that `addr`.
-    pub fn schema<V>(data: &Trie<V>) -> Self {
-        let mut visitor = Trie::new();
-        for (addr, _) in data.leaf_iter() {
-            visitor.insert_leaf_node(addr, ());
-        }
-        for (addr, inode) in data.internal_iter() {
-            visitor.insert_internal_node(addr, Self::schema(inode));
-        }
-        visitor
-    }
 }
 
 impl<A: 'static,T: 'static> TrieFnState<A,T> {
     /// Sample a random value from a distribution and insert it into the `self.trace.data` trie as a weighted leaf node.
     /// 
-    /// Return the cloned sampled value.
+    /// Return a clone of the sampled value.
     pub fn sample_at<
         V: Clone + 'static,
         W: Clone + 'static
@@ -196,10 +198,10 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 
     /// Recursively sample a trace from another `gen_fn`.
     /// 
-    /// Insert its `data` trie as a weighted internal node of the current `trace` data trie.
-    /// Insert its `retv` as a (zero-weighted) leaf node of the current `trace` data trie.
+    /// Insert its `subtrace.data` trie as a weighted internal node of the current `trace.data` trie.
+    /// Insert its `retv` as a (zero-weighted) internal node of the current `trace.data` trie.
     /// 
-    /// Return the cloned `retv`.
+    /// Return a clone of the `retv`.
     pub fn trace_at<
         X: Clone + 'static,
         Y: Clone + 'static,
