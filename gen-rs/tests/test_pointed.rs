@@ -20,5 +20,5 @@ fn test_uniform2d() {
         approx::assert_abs_diff_eq!(types_2d::uniform_2d.logpdf(&sample, bounds), -1.1394342831883648, epsilon=f64::EPSILON);
     }
 
-    assert_eq!(types_2d::uniform_2d.logpdf(&dvector![-1., 0.], bounds), -f64::INFINITY);
+    assert_eq!(types_2d::uniform_2d.logpdf(&dvector![-1., 0.], bounds), f64::NEG_INFINITY);
 }

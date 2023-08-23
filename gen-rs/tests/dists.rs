@@ -4,21 +4,90 @@ use nalgebra::{dvector,dmatrix};
 use rand::rngs::ThreadRng;
 use statistical::{mean, variance, standard_deviation};
 use approx;
-use gen_rs::{Distribution, bernoulli, normal, mvnormal, categorical};
+use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal};
 
 #[test]
 fn test_bernoulli() {
     let mut rng = ThreadRng::default();
 
     let true_p = 0.11;
-    assert!(bernoulli.logpdf(&true, true_p) == true_p.ln());
-    assert!(bernoulli.logpdf(&false, true_p) == (1.-true_p).ln());
+    assert_eq!(bernoulli.logpdf(&true, true_p), true_p.ln());
+    assert_eq!(bernoulli.logpdf(&false, true_p), (1.-true_p).ln());
     let samples = (0..50000).map(|_| bernoulli.random(&mut rng, 0.11)).collect::<Vec<bool>>();
 
     let empirical_true = samples.iter().filter(|&&x| x).collect::<Vec<_>>().len();
     let empirical_false = samples.iter().filter(|&&x| !x).collect::<Vec<_>>().len();
     let empirical_freq = empirical_true as f64 / empirical_false as f64;
     approx::assert_abs_diff_eq!(empirical_freq, true_p, epsilon = 0.02);
+}
+
+#[test]
+fn test_uniform() {
+    let mut rng = ThreadRng::default();
+
+    // continuous
+    
+    let params = (0.5, 3.14);
+    let (a, b) = params;
+    let true_p = 1. / (b - a);
+    assert_eq!(uniform.logpdf(&0.9, params), true_p.ln());
+    assert_eq!(uniform.logpdf(&2.1, params), true_p.ln());
+    assert_eq!(uniform.logpdf(&0.4, params), f64::NEG_INFINITY);
+    let num_samples = 50000;
+    let samples = (0..num_samples).map(|_| uniform.random(&mut rng, params)).collect::<Vec<f64>>();
+    let num_bins = 100;
+    let mut hist = vec![0; num_bins];
+
+    let expected_samples_per_bin = num_samples / num_bins;
+    for x in samples {
+        let i = ((x - a) / (b - a) * num_bins as f64).trunc() as usize;
+        hist[i] += 1;
+    }
+    for bin_count in hist {
+        approx::assert_abs_diff_eq!(bin_count, expected_samples_per_bin, epsilon = 150);
+    }
+
+    // discrete
+    let params = (8, 130);
+    let (a, b) = params;
+    let true_p = 1. / (b - a + 1) as f64;
+    assert_eq!(uniform_discrete.logpdf(&9, params), true_p.ln());
+    assert_eq!(uniform_discrete.logpdf(&130, params), true_p.ln());
+    assert_eq!(uniform_discrete.logpdf(&140, params), f64::NEG_INFINITY);
+    let num_samples = 50000;
+    let samples = (0..num_samples).map(|_| uniform_discrete.random(&mut rng, params)).collect::<Vec<i64>>();
+    let num_bins = 5;
+    let mut hist = vec![0; num_bins];
+
+    let expected_samples_per_bin = num_samples / num_bins;
+    for x in samples {
+        let i = ((x - a) as f64 / (b - a + 1) as f64 * num_bins as f64) as usize;
+        hist[i] += 1;
+    }
+    for bin_count in hist {
+        approx::assert_abs_diff_eq!(bin_count, expected_samples_per_bin, epsilon = 750);
+    }
+}
+
+#[test]
+fn test_categorical() {
+    let mut rng = ThreadRng::default();
+    let labels = vec!["a", "b", "c", "d", "e", "f"];
+    let probs = vec![0.1, 0.3, 0.2, 0.1, 0.05, 0.25];
+    let num_samples = 50000;
+    let sample_indices = (0..num_samples).map(|_| categorical.random(&mut rng, probs.clone())).collect::<Vec<usize>>();
+
+    let samples = sample_indices.iter().map(|idx| labels[*idx]).collect::<Vec<&str>>();
+
+    let mut count = HashMap::new();
+
+    for item in samples.iter() {
+        *count.entry(item).or_insert(0) += 1;
+    }
+    for (i, gt_freq) in (0..6).zip(probs.iter()) {
+        let freq = count[&labels[i]] as f64 / num_samples as f64;
+        approx::assert_abs_diff_eq!(freq, gt_freq, epsilon = 0.01);
+    }
 }
 
 #[test]
@@ -101,25 +170,4 @@ fn test_mvnormal() {
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
     approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = f64::EPSILON);
-}
-
-#[test]
-fn test_categorical() {
-    let mut rng = ThreadRng::default();
-    let labels = vec!["a", "b", "c", "d", "e", "f"];
-    let probs = vec![0.1, 0.3, 0.2, 0.1, 0.05, 0.25];
-    let num_samples = 50000;
-    let sample_indices = (0..num_samples).map(|_| categorical.random(&mut rng, probs.clone())).collect::<Vec<usize>>();
-
-    let samples = sample_indices.iter().map(|idx| labels[*idx]).collect::<Vec<&str>>();
-
-    let mut count = HashMap::new();
-
-    for item in samples.iter() {
-        *count.entry(item).or_insert(0) += 1;
-    }
-    for (i, gt_freq) in (0..6).zip(probs.iter()) {
-        let freq = count[&labels[i]] as f64 / num_samples as f64;
-        approx::assert_abs_diff_eq!(freq, gt_freq, epsilon = 0.01);
-    }
 }

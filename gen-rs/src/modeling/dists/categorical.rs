@@ -15,7 +15,7 @@ impl Distribution<usize,Vec<f64>> for Categorical {
         return if *x < probs.len() {
             probs[*x].ln()
         } else {
-            -f64::INFINITY
+            f64::NEG_INFINITY
         }
     }
 
