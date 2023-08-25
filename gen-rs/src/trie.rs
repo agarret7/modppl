@@ -147,8 +147,9 @@ impl<V> Trie<V> {
             Term(addr) => {
                 self.internal_nodes.remove(addr)
             }
-            Prefix(first, _) => {
-                self.internal_nodes.remove(first)
+            Prefix(first, rest) => {
+                let node = self.internal_nodes.get_mut(first).unwrap();
+                node.remove_internal_node(rest)
             }
         }
     }
