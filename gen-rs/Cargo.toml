@@ -1,6 +1,6 @@
 [package]
 name = "gen-rs"
-description = "a general-purpose framework for probabilistic programming in Rust."
+description = "a experimental library for probabilistic programming in Rust."
 version = "0.2.1"
 edition = "2021"
 keywords = ["statistics", "ppl", "mcmc", "importance-sampling", "particle-filtering"]
