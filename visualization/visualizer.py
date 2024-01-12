@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+from math import sin, cos
 import json
 
 def plot_importance_sampling():
@@ -71,8 +72,47 @@ def plot_hierarchical_model():
 
     plt.savefig("visualization/hierarchical.png")
 
+def plot_smc_model():
+    fig, ax = plt.subplots()
+    ax.set_title("SMC on Gaussian-Perturbed Simulated Loops")
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+
+    for i in range(100):
+        if i >= 0:
+            with open("data/smc_traces_before_resample_%i.json" % i) as fp:
+                data = json.load(fp)
+                xs = [pol[0]*cos(pol[1]) for pol in data]
+                ys = [pol[0]*sin(pol[1]) for pol in data]
+
+            if i == 0:
+                ax.scatter(xs, ys, s=5, label="Before Resample", c="skyblue")
+            else:
+                ax.scatter(xs, ys, s=5, c="skyblue")
+
+        with open("data/smc_traces_%i.json" % i) as fp:
+            data = json.load(fp)
+            xs = [pol[0]*cos(pol[1]) for pol in data]
+            ys = [pol[0]*sin(pol[1]) for pol in data]
+
+        if i == 0:
+            ax.scatter(xs, ys, s=5, label="After Resample", c="orange")
+        else:
+            ax.scatter(xs, ys, s=5, c="orange")
+
+    with open("data/smc_obs.json") as fp:
+        data = json.load(fp)
+        xs = [p[0] for p in data]
+        ys = [p[1] for p in data]
+
+    ax.scatter(xs, ys, facecolors="none", edgecolors='black', s=200, label="Obs")
+
+    plt.legend()
+    plt.savefig("visualization/smc.png")
+
 
 if __name__ == "__main__":
-    plot_importance_sampling()
-    plot_metropolis_hastings()
-    plot_hierarchical_model()
+    # plot_importance_sampling()
+    # plot_metropolis_hastings()
+    # plot_hierarchical_model()
+    plot_smc_model()
