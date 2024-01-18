@@ -22,7 +22,7 @@ fn _spiral_kernel(g: &mut TrieFnState<(i64,Point),Point>, args: (i64,Point)) -> 
         pos = polar_to_cartesian(&pol);
     } else {
         let dr = g.sample_at(&normal, (0., 0.1), "dr");
-        let dtheta = g.sample_at(&normal, (0.2, 0.4), "dtheta");
+        let dtheta = g.sample_at(&normal, (0.4, 0.2), "dtheta");
         pol = dvector![prev_pol[0] + dr, prev_pol[1] + dtheta];
         pos = polar_to_cartesian(&pol);
     }

@@ -17,31 +17,6 @@ pub mod triefns;
 use triefns::spiral_model;
 
 
-fn simulate_spikey(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Trie<(Rc<dyn Any>,f64)>> {
-    let init_angle = dists::u01(rng) * 2.*PI;
-
-    let xrange = (bounds.xmax - bounds.xmin) as f64;
-    let yrange = (bounds.ymax - bounds.ymin) as f64;
-    let center = dvector![
-        xrange / 2. + bounds.xmin,
-        yrange / 2. + bounds.ymin
-    ];
-    let radius = f64::max(bounds.xmax - bounds.xmin, bounds.ymax - bounds.ymin) / 3.;
-    let mut observations = vec![];
-    for t in 0..timesteps {
-        let u = 20.*PI*(t as f64) / 100. as f64;
-        let t = 2.*PI*(t as f64) / 100. as f64;
-        let obs = dvector![
-            center[0] + radius*(t + init_angle).cos() + radius/8.*u.sin(),
-            center[1] + radius*(t + init_angle).sin() + radius/8.*u.cos()
-        ];
-        let mut constraints = Trie::new();
-        constraints.insert_leaf_node("obs", Rc::new(obs) as Rc<dyn Any>);
-        observations.push(Trie::from_unweighted(constraints));
-    }
-    observations
-}
-
 fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Trie<(Rc<dyn Any>,f64)>>{
     let init_angle = dists::u01(rng) * 2.*PI;
 
@@ -54,15 +29,14 @@ fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Tr
     let radius = f64::max(bounds.xmax - bounds.xmin, bounds.ymax - bounds.ymin) / 5.;
     
     let mut observations = vec![];
-    let special_t = 50.0;
-    let perturb_means = (0..100).filter(|_| dists::u01(rng) < 0.2).collect::<Vec<_>>();
+    let perturb_means = (0..timesteps).filter(|_| dists::u01(rng) < 0.3).collect::<Vec<_>>();
     for t in 0..timesteps {
         let mut deformation = 0.;
         for perturb_t in &perturb_means {
-            deformation += normal.logpdf(&(t as f64), (perturb_t.clone() as f64, 3.)).exp()
+            deformation += normal.logpdf(&(t as f64), (perturb_t.clone() as f64, 1.)).exp()
         }
         let r = radius + deformation;
-        let t = 2.*PI*(t as f64) / 100. as f64;
+        let t = 2.*PI*(t as f64) / timesteps as f64;
         let obs = dvector![
             center[0] + r*(t + init_angle).cos(),
             center[1] + r*(t + init_angle).sin()
@@ -79,8 +53,8 @@ fn test_smc() -> std::io::Result<()> {
     create_dir_all("../data")?;
 
     let mut rng = ThreadRng::default();
-    const NUM_TIMESTEPS: i64 = 100;
-    const NUM_PARTICLES: usize = 10;
+    const NUM_TIMESTEPS: i64 = 20;
+    const NUM_PARTICLES: usize = 500;
 
     let bounds = Bounds { xmin: -1., xmax: 1., ymin: -1., ymax: 1.};
     let data = simulate_loop(&mut rng, &bounds, NUM_TIMESTEPS);
