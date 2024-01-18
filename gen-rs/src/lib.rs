@@ -45,7 +45,8 @@ pub use trie::Trie;
 pub use address::{SplitAddr, normalize_addr};
 pub use gfi::{Trace, GenFn, GfDiff};
 pub use modeling::dists::{u01,Distribution,bernoulli,uniform_continuous,uniform,uniform_discrete,categorical,normal,mvnormal};
-pub use modeling::triefn::{TrieFn,TrieFnState};
+pub use modeling::triefn::{TrieFn,TrieFnState,AddrTrie};
+pub use modeling::unfold::Unfold;
 pub use mathutils::logsumexp;
 
 // inference libs

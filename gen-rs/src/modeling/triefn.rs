@@ -204,7 +204,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
     /// Return a clone of the `retv`.
     pub fn trace_at<
         X: Clone + 'static,
-        Y: Clone + 'static,
+        Y: Clone + 'static
     >(&mut self, gen_fn: &impl GenFn<X,Trie<(Rc<dyn Any>,f64)>,Y>, args: X, addr: &str) -> Y {
         match self {
             TrieFnState::Simulate {
@@ -361,7 +361,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 }
 
 
-/// Wrapper struct for functions that can use the TrieFn DSL (`sample_at` and `trace_at`) and automatically implement the GFI.
+/// Wrapper struct for functions that use the `TrieFnState` DSL (`sample_at` and `trace_at`) and automatically implement the GFI.
 pub struct TrieFn<A,T> {
     /// A random function that takes in a mutable reference to a `TrieFnState<A,T>` and some args `A`, effectfully mutates the state, and produces a value `T`.
     pub func: fn(&mut TrieFnState<A,T>, A) -> T,
@@ -377,23 +377,23 @@ impl<Args,Ret> TrieFn<Args,Ret>{
 
 impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret> for TrieFn<Args,Ret> {
     fn simulate(&self, args: Args) -> Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret> {
-        let mut state = TrieFnState::Simulate {
+        let mut g = TrieFnState::Simulate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
         };
-        let retv = (self.func)(&mut state, args);
-        let TrieFnState::Simulate {mut trace} = state else { unreachable!() };
+        let retv = (self.func)(&mut g, args);
+        let TrieFnState::Simulate {mut trace} = g else { unreachable!() };
         trace.set_retv(retv);
         trace
     }
 
     fn generate(&self, args: Args, constraints: Trie<(Rc<dyn Any>,f64)>) -> (Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret>, f64) {
-        let mut state = TrieFnState::Generate {
+        let mut g = TrieFnState::Generate {
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
             weight: 0.,
             constraints: constraints.into_unweighted(),
         };
-        let retv = (self.func)(&mut state, args);
-        let TrieFnState::Generate {mut trace, weight, constraints} = state else { unreachable!() };
+        let retv = (self.func)(&mut g, args);
+        let TrieFnState::Generate {mut trace, weight, constraints} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.set_retv(retv);
         (trace, weight)
@@ -405,16 +405,16 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,Trie<(Rc<dyn Any>,f64)>,Ret>
         _: GfDiff,
         constraints: Trie<(Rc<dyn Any>,f64)>
     ) -> (Trace<Args,Trie<(Rc<dyn Any>,f64)>,Ret>, Trie<(Rc<dyn Any>,f64)>, f64) {
-        let mut state = TrieFnState::Update {
+        let mut g = TrieFnState::Update {
             trace,
             weight: 0.,
             constraints: constraints.into_unweighted(),
             discard: Trie::new(),
             visitor: AddrTrie::new()
         };
-        let retv = (self.func)(&mut state, args);
-        let state = state.gc();  // add unvisited to discard
-        let TrieFnState::Update {mut trace, weight, constraints, discard, visitor: _visitor} = state else { unreachable!() };
+        let retv = (self.func)(&mut g, args);
+        let g = g.gc();  // add unvisited to discard
+        let TrieFnState::Update {mut trace, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.set_retv(retv);
         (trace, Trie::from_unweighted(discard), weight)

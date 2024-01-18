@@ -8,7 +8,9 @@ use crate::{Trace,GenFn,GfDiff,Distribution,categorical,mathutils::logsumexp};
 pub struct ParticleSystem<Args: Clone,Data: Clone,Ret: Clone,F: GenFn<(i64,Args),Data,Ret>> {
     num_particles: usize,
     model: Box<F>,
-    traces: Vec<Trace<(i64,Args),Data,Ret>>,
+
+    /// Persistent traces contained within the system
+    pub traces: Vec<Trace<(i64,Args),Data,Ret>>,
 
     log_weights: Vec<f64>,
     log_normalized_weights: Vec<f64>,
