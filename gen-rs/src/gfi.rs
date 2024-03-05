@@ -62,7 +62,6 @@ pub trait GenFn<Args,Data,Ret> {
         constraints: Data                    // Data := forward choices
     ) -> (Trace<Args,Data,Ret>, Data, f64);  // Data := backward choices
 
-
     /// Call a generative function and return the output.
     fn call(&self, args: Args) -> Ret {
         self.simulate(args).retv.unwrap()

@@ -163,6 +163,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
 
                 let has_previous = data.has_leaf_node(addr);
                 let constrained = constraints.has_leaf_node(addr);
+                let logp;
                 let mut prev_logp = 0.;
                 if has_previous {
                     let val = data.remove_leaf_node(addr).unwrap();
@@ -174,22 +175,25 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                     } else {
                         x = prev_x;
                     }
+                    logp = dist.logpdf(x.as_ref(), args);
+                    *weight += logp;
+                    *weight -= prev_logp;
                 } else {
                     if constrained {
                         x = constraints.remove_leaf_node(addr).unwrap().downcast::<V>().ok().unwrap();
+                        logp = dist.logpdf(x.as_ref(), args);
+                        *weight += logp;
                     } else {
                         x = Rc::new(GLOBAL_RNG.with_borrow_mut(|rng| {
                             dist.random(rng, args.clone())
                         }));
+                        logp = dist.logpdf(x.as_ref(), args);
                     }
                 }
 
-                let logp = dist.logpdf(x.as_ref(), args);
-                let d_logp = logp - prev_logp;
-                *weight += d_logp;
-
                 data.insert_leaf_node(addr, (x.clone(), logp));
-                trace.logp += d_logp;
+                trace.logp += logp;
+                trace.logp -= prev_logp;
 
                 x.as_ref().clone()
             }
@@ -280,10 +284,13 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                         subtrie = subtrace.data;
                         retv = Rc::new(subtrace.retv.unwrap());
                         logp = new_weight;
+                        *weight += new_weight;
                     } else {
+                        dbg!(prev_subtrie.sum());
                         subtrie = prev_subtrie;
                         retv = data.remove_leaf_node(addr).unwrap().0.downcast::<Y>().ok().unwrap();
                     }
+                    *weight += logp;
                 } else {
                     if constrained {
                         let subconstraints = Trie::from_unweighted(constraints.remove_internal_node(addr).unwrap());
@@ -291,6 +298,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                         subtrie = subtrace.data;
                         retv = Rc::new(subtrace.retv.unwrap());
                         logp = new_weight;
+                        *weight += logp;
                     } else {
                         let subtrace = gen_fn.simulate(args);
                         subtrie = subtrace.data;
@@ -299,7 +307,6 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
                     }
                 }
 
-                *weight += logp;
                 data.insert_internal_node(addr, subtrie);
                 data.insert_leaf_node(addr, (retv.clone(), 0.));
                 trace.logp += logp;
@@ -350,7 +357,7 @@ impl<A: 'static,T: 'static> TrieFnState<A,T> {
             let (data, garbage, garbage_weight) = Self::_gc(trace.data, &unvisited);
             assert!(visitor.all_visited(&data));  // all unvisited nodes garbage-collected
             Self::Update {
-                trace: Trace { args: trace.args, data, retv: trace.retv, logp: trace.logp },
+                trace: Trace { args: trace.args, data, retv: trace.retv, logp: trace.logp - garbage_weight },
                 constraints,
                 weight: weight - garbage_weight,
                 discard: discard.merge(garbage),
