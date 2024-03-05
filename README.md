@@ -5,20 +5,21 @@
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-gen_rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/gen-rs)
 [<img alt="status" src="https://img.shields.io/github/actions/workflow/status/agarret7/gen-rs/test.yml?branch=main&style=for-the-badge" height="20">](https://github.com/agarret7/gen-rs/actions?query=branch%3Amain)
 
-gen-rs is an experimental, research crate for probabilistic programming in Rust. gen-rs supports many features of other Rust-native probabilistic frameworks such as [Ferric](https://github.com/ferric-ai/ferric), and is written at a lower-level than languages such as [Gen.jl](https://github.com/probcomp/Gen.jl). gen-rs was inspired by [GenTL](https://github.com/OpenGen/GenTL/tree/main), but with Rust-native constructs.
+This is evolving software. Expect breaking API changes.
 
-It approximately* implements the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf) and a basic, yet complete set of inference procedures.
+gen-rs is an experimental crate for probabilistic programming in Rust. gen-rs was inspired by [GenTL](https://github.com/OpenGen/GenTL/tree/main), but with Rust-native constructs.
+
+It approximately* implements the Generative Function Interface [[GFI]](https://github.com/agarret7/gen-rs/blob/main/gen-rs/src/gfi.rs) as specified in the [Gen.jl whitepaper](https://dl.acm.org/doi/10.1145/3314221.3314642) and [Marco Cusumano-Towner's thesis](https://www.mct.dev/assets/mct-thesis.pdf). It provides several kinds of inference procedures built on this interface.
 
 
-## Modeling Features
+## Modeling
 
-- Generative Function Interface (GFI) compatible
 - Dynamically-typed `TrieFn` DSL
 - Unfold Kernel Combinator
 - [Example model implementations](https://github.com/agarret7/gen-rs/blob/main/gen-rs/tests/triefns)
 
 
-## Inference Features
+## Inference Procedures
 
 - Importance Sampling
 - Proposal-based MCMC
@@ -33,6 +34,4 @@ cargo test && python visualization/visualizer.py
 
 ## Disclaimer
 
-Unlike most modern ML systems, probabilistic programming doesn't require a differentiable likelihood. A fast (possibly parallelized) CPU-bound iterator is often sufficient for inference. This aligns well with Rust's principle of "fearless concurrency". AD support is not currently planned for this library.
-
-(*) `gen-rs` does not exactly implement the GFI. More precisely, `gen-rs` does not implement _retdiff_.
+(*) `gen-rs` does not exactly implement the GFI. More precisely, `gen-rs` does not implement _retdiff_ or _choice gradients_.
