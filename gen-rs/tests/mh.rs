@@ -9,9 +9,9 @@ mod pointed_model;
 use pointed_model::types_2d::Bounds;
 use pointed_model::{PointedModel, DriftProposal};
 
-mod triefns;
-use triefns::{pointed_2d_model, pointed_2d_drift_proposal};
-use triefns::{hierarchical_model, read_coeffs,
+mod dyngenfns;
+use dyngenfns::{pointed_2d_model, pointed_2d_drift_proposal};
+use dyngenfns::{hierarchical_model, read_coeffs,
     hierarchical_drift_proposal,
     add_or_remove_param_proposal
 };
@@ -46,7 +46,7 @@ fn test_metropolis_hastings_handcoded() -> std::io::Result<()> {
 
 
 #[test]
-pub fn test_metropolis_hastings_triefn() -> std::io::Result<()> {
+pub fn test_metropolis_hastings_dyngenfn() -> std::io::Result<()> {
     create_dir_all("../data")?;
 
     const NUM_ITERS: u32 = 25000;
@@ -55,8 +55,7 @@ pub fn test_metropolis_hastings_triefn() -> std::io::Result<()> {
     let obs = dvector![0., 0.];
 
     let mut observations = Trie::new();
-    observations.insert_leaf_node("obs", Rc::new(obs) as Rc<dyn Any>);
-    let observations = Trie::from_unweighted(observations);
+    observations.observe("obs", Rc::new(obs) as Rc<dyn Any>);
 
     let mut trace = pointed_2d_model.generate((bounds, dmatrix![1., -3./5.; -3./5., 2.]), observations).0;
     for iter in 0..NUM_ITERS {
@@ -64,7 +63,7 @@ pub fn test_metropolis_hastings_triefn() -> std::io::Result<()> {
         let (new_trace, accepted) = mh(&pointed_2d_model, trace, &pointed_2d_drift_proposal, dmatrix![0.25, 0.; 0., 0.25]);
         dbg!(accepted);
         trace = new_trace;
-        let data = trace.data.get_leaf_node("latent").unwrap().0.clone().downcast::<DVector<f64>>().ok().unwrap();
+        let data = trace.data.read::<DVector<f64>>("latent");
         let json = format!("[{},{}]", data[0], data[1]);
         write(format!("../data/mh_trace_{}.json", iter), json)?;
     }
@@ -87,9 +86,9 @@ pub fn test_metropolis_hastings_hierarchical() -> std::io::Result<()> {
         a + b*x + c*x*x + normal.random(&mut rng, (0., 0.1))
     ).collect::<Vec<f64>>();
     write("../data/hierarchical_data.json", format!("[{:?}, {:?}]", xs, ys))?;
-    ys.into_iter().enumerate().for_each(|(i, y)| { observations.insert_leaf_node(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
+    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
 
-    let mut trace = hierarchical_model.generate(xs, Trie::from_unweighted(observations)).0;
+    let mut trace = hierarchical_model.generate(xs, observations).0;
     let mut all_coeffs = vec![];
     for _ in 0..100 {
         let (new_trace, _) = mh(&hierarchical_model, trace, &add_or_remove_param_proposal, ());

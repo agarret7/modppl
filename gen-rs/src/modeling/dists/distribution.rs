@@ -1,5 +1,5 @@
 use rand::{self,Rng,rngs::ThreadRng};
-use crate::{GLOBAL_RNG, Trace, GenFn, GfDiff};
+use crate::{Trace, GenFn, GfDiff};
 
 
 /// Sample a random variable uniformly in the interval [0., 1.].
@@ -23,9 +23,8 @@ pub struct Sample<T>(pub T);
 
 impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
     fn simulate(&self, args: U) -> Trace<U,Sample<T>,T> {
-        let x = GLOBAL_RNG.with_borrow_mut(|rng| {
-            self.random(rng, args.clone())
-        });
+        let mut prng = ThreadRng::default();
+        let x = self.random(&mut prng, args.clone());
         let logp = self.logpdf(&x, args.clone());
         Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }
     }

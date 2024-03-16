@@ -177,6 +177,5 @@ pub fn test_beta() {
     let mut rng = ThreadRng::default();
     for _ in 0..100 {
         let x = beta.random(&mut rng, (0.001,0.001));
-        dbg!(x);
     }
 }

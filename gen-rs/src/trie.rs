@@ -1,239 +1,232 @@
-use std::ops::Index;
 use std::collections::{HashMap, hash_map};
 use crate::SplitAddr::{self,Prefix,Term};
 
 
-/// Hierarchical prefix tree
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Clone)]
+#[derive(Debug,PartialEq)]
+#[derive(Serialize, Deserialize)]
 pub struct Trie<V> {
-    leaf_nodes: HashMap<String,V>,
-    internal_nodes: HashMap<String,Trie<V>>
+    mapping: HashMap<String,Trie<V>>,
+    value: Option<V>,
+    weight: f64
 }
 
 impl<V> Trie<V> {
-    /// Construct an empty Trie.
+
     pub fn new() -> Self {
         Trie {
-            leaf_nodes: HashMap::new(),
-            internal_nodes: HashMap::new()
+            mapping: HashMap::new(),
+            value: None,
+            weight: 0.
         }
     }
 
-    /// Return `true` if a Trie is empty (has no leaf or internal nodes), otherwise `false`.
+    pub fn leaf(value: V, weight: f64) -> Self {
+        Trie {
+            mapping: HashMap::new(),
+            value: Some(value),
+            weight: weight
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
-        self.leaf_nodes.is_empty() && self.internal_nodes.is_empty()
+        self.mapping.is_empty() && self.value.is_none()
     }
 
-    /// Return `true` if a Trie has a leaf node at `addr`, otherwise `false`.
-    pub fn has_leaf_node(&self, addr: &str) -> bool {
+    pub fn is_leaf(&self) -> bool {
+        self.mapping.is_empty() && self.value.is_some()
+    }
+
+    pub fn value_ref(&self) -> Option<&V> {
+        self.value.as_ref()
+    }
+
+    pub fn replace_inner(&mut self, value: V) -> Option<V> {
+        self.value.replace(value)
+    }
+
+    pub fn unwrap_inner_unchecked(self) -> V {
+        self.value.expect("unwrap: no value in root.")
+    }
+
+    pub fn take_inner_unchecked(&mut self) -> V {
+        self.value.take().expect("take: no value in root.")
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<'_, String, Trie<V>> {
+        self.mapping.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> hash_map::IterMut<'_, String, Trie<V>> {
+        self.mapping.iter_mut()
+    }
+
+    pub fn into_iter(self) -> hash_map::IntoIter<String, Trie<V>> {
+        self.mapping.into_iter()
+    }
+
+    pub fn measure(&self) -> f64 {
+        self.weight
+    }
+
+    pub fn search(&self, addr: &str) -> Option<&Trie<V>> {
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
-                self.leaf_nodes.contains_key(addr)
+                self.mapping.get(addr)
             }
             Prefix(first, rest) => {
-                if self.internal_nodes.contains_key(first) {
-                    self.internal_nodes[first].has_leaf_node(rest)
+                self.mapping[first].search(rest)
+            }
+        }
+    }
+
+    pub fn observe(&mut self, addr: &str, value: V) {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                if self.mapping.contains_key(addr) {
+                    panic!("observe: attempted to put into occupied address \"{addr}\"");
                 } else {
-                    false
+                    self.mapping.insert(addr.to_string(), Trie::leaf(value, 0.0));
                 }
             }
-        }
-    }
-
-    /// Return `Some(&value)` if `self` contains a `value` located at `addr`, otherwise `None`.
-    pub fn get_leaf_node(&self, addr: &str) -> Option<&V> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.get(addr)
-            }
             Prefix(first, rest) => {
-                self.internal_nodes[first].get_leaf_node(rest)
-            }
-        }
-    }
-
-    /// Insert `value` as a leaf node located at `addr`.
-    /// 
-    /// If there was a value `prev` located at `addr`, return `Some(prev)`, otherwise `None`.
-    pub fn insert_leaf_node(&mut self, addr: &str, value: V) -> Option<V> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.leaf_nodes.insert(addr.to_string(), value)
-            }
-            Prefix(first, rest) => {
-                let node = self.internal_nodes
+                let submap = self.mapping
                     .entry(first.to_string())
                     .or_insert(Trie::new());
-                node.insert_leaf_node(rest, value)
+                submap.observe(rest, value)
             }
         }
     }
 
-    /// Return `Some(value)` if `self` contains a `value` located at `addr` and remove `value` from the leaf nodes, otherwise return `None`.
-    pub fn remove_leaf_node(&mut self, addr: &str) -> Option<V> {
+    pub fn witness(&mut self, addr: &str, value: V, weight: f64) { 
+        self.weight += weight;
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
-                self.leaf_nodes.remove(addr)
-            }
-            Prefix(first, rest) => {
-                let node = self.internal_nodes.get_mut(first).unwrap();
-                let leaf = node.remove_leaf_node(rest);
-                if node.is_empty() {
-                    self.remove_internal_node(first);
-                }
-                leaf
-            }
-        }
-    }
-
-    /// Return an iterator over a Trie's leaf nodes.
-    pub fn leaf_iter(&self) -> hash_map::Iter<'_, String, V> {
-        self.leaf_nodes.iter()
-    }
-
-    /// Return `true` if a Trie has an internal node at `addr`, otherwise `false`.
-    pub fn has_internal_node(&self, addr: &str) -> bool {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.internal_nodes.contains_key(addr)
-            }
-            Prefix(first, rest) => {
-                if self.internal_nodes.contains_key(first) {
-                    self.internal_nodes[first].has_internal_node(rest)
+                if self.mapping.contains_key(addr) {
+                    panic!("witness: attempted to put into occupied address \"{addr}\"");
                 } else {
-                    false
-                }
-            }
-        }
-    }
-
-    /// Return `Some(&subtrie)` if `self` contains a `subtrie` located at `addr`, otherwise `None`.
-    pub fn get_internal_node(&self, addr: &str) -> Option<&Self> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.internal_nodes.get(addr)
-            }
-            Prefix(first, rest) => {
-                self.internal_nodes[first].get_internal_node(rest)
-            }
-        }
-    }
-
-    /// Insert `subtrie` as an internal node located at `addr`.
-    /// 
-    /// If there was a value `prev_subtrie` located at `addr`, return `Some(prev_subtrie)`, otherwise `None`.
-    /// Panics if `subtrie.is_empty()`.
-    pub fn insert_internal_node(&mut self, addr: &str, new_node: Self) -> Option<Trie<V>> {
-        match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                if !new_node.is_empty() {
-                    self.internal_nodes.insert(addr.to_string(), new_node)
-                } else {
-                    panic!("attempted to insert empty inode")
+                    self.mapping.insert(addr.to_string(), Trie::leaf(value, weight));
                 }
             }
             Prefix(first, rest) => {
-                let node = self.internal_nodes
+                let submap = self.mapping
                     .entry(first.to_string())
                     .or_insert(Trie::new());
-                node.insert_internal_node(rest, new_node)
+                submap.witness(rest, value, weight)
             }
         }
     }
 
-    /// Return `Some(subtrie)` if `self` contains a `subtrie` located at `addr` and remove `subtrie` from the internal nodes, otherwise return `None`.
-    pub fn remove_internal_node(&mut self, addr: &str) -> Option<Trie<V>> {
+    pub fn insert(&mut self, addr: &str, sub: Trie<V>) -> Option<Trie<V>> {
+        self.weight += sub.weight;
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
-                self.internal_nodes.remove(addr)
+                self.mapping.insert(addr.to_string(), sub)
             }
             Prefix(first, rest) => {
-                let node = self.internal_nodes.get_mut(first).unwrap();
-                node.remove_internal_node(rest)
+                let submap = self.mapping
+                    .entry(first.to_string())
+                    .or_insert(Trie::new());
+                submap.insert(rest, sub)
             }
         }
     }
 
-    /// Return an iterator over a Trie's internal nodes.
-    pub fn internal_iter(&self) -> hash_map::Iter<'_, String, Trie<V>> {
-        self.internal_nodes.iter()
-    }
-
-    /// Merge `other` into `self`, freeing previous values and subtries at each `addr` in `self` if `other` also has an entry at `addr`.
-    /// 
-    /// Returns the mutated `self`.
-    pub fn merge(mut self, other: Self) -> Self {
-        for (addr, value) in other.leaf_nodes.into_iter() {
-            self.insert_leaf_node(&addr, value);
-        }
-        for (addr, subtrie) in other.internal_nodes.into_iter() {
-            self.insert_internal_node(&addr, subtrie);
-        }
-        self
-    }
-}
-
-
-// specializations
-
-impl<V> Trie<(V,f64)> {
-    /// Return the sum of all the weights of the leaf nodes and the recursive sum of all internal nodes.
-    pub fn sum(&self) -> f64 {
-        self.internal_nodes.values().fold(0., |acc, t| acc + t.sum()) +
-        self.leaf_nodes.values().fold(0., |acc, v| acc + v.1)
-    }
-
-    /// Convert a weighted `Trie` into the equivalent unweighted version by discarding all the weights.
-    pub fn into_unweighted(self) -> Trie<V> {
-        Trie {
-            internal_nodes: self.internal_nodes.into_iter().map(|(addr, t)| (addr, t.into_unweighted())).collect::<_>(),
-            leaf_nodes: self.leaf_nodes.into_iter().map(|(addr, v)| (addr, v.0)).collect::<_>()
+    pub fn remove(&mut self, addr: &str) -> Option<Trie<V>> {
+        if let Some(sub) = match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.mapping.remove(addr)
+            }
+            Prefix(first, rest) => {
+                match self.mapping.get_mut(first) {
+                    Some(node) => {
+                        let leaf = node.remove(rest);
+                        if node.is_empty() {
+                            self.remove(first);
+                        }
+                        leaf
+                    }
+                    None => { None }
+                }
+            }
+        } {
+            self.weight -= sub.weight;
+            Some(sub)
+        } else {
+            None
         }
     }
 
-    /// Convert an unweighted `Trie` into the equivalent weighted version by adding a weight of `0.` to all leaf nodes.
-    pub fn from_unweighted(trie: Trie<V>) -> Self {
-        Trie {
-            internal_nodes: trie.internal_nodes.into_iter().map(|(addr, t)| (addr, Self::from_unweighted(t))).collect::<_>(),
-            leaf_nodes: trie.leaf_nodes.into_iter().map(|(addr, v)| (addr, (v, 0.))).collect::<_>()
+    pub fn merge(&mut self, other: Self) {
+        for (addr, othersub) in other.into_iter() {
+            if othersub.is_leaf() {
+                self.witness(&addr, othersub.value.unwrap(), othersub.weight);
+            } else {
+                match self.mapping.get_mut(&addr) {
+                    Some(sub) => {
+                        sub.merge(othersub);
+                    }
+                    None => {
+                        self.insert(&addr, othersub);
+                    }
+                }
+            }
         }
     }
 }
 
-use std::{rc::Rc,any::Any};
 
-impl Trie<Rc<dyn Any>> {
-    /// Optimistically casts the reference-counted `dyn Any` at `addr` into type `V`, and returns a cloned value.
-    pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
-        self.get_leaf_node(addr)
-            .unwrap()
-            .clone()
-            .downcast::<V>()
-            .ok()
-            .unwrap()
-            .as_ref()
-            .clone()
+/// Trie for hierarchical address schemas (with empty values).
+pub type AddrTrie = Trie<()>;
+
+impl AddrTrie {
+
+    /// Return the unique `AddrTrie` that contains an `addr` if and only if `data` contains that `addr`.
+    pub fn schema<V>(data: &Trie<V>) -> Self {
+        let mut visitor = Trie::new();
+        for (addr, sub) in data.iter() {
+            visitor.insert(addr, Self::schema(sub));
+        }
+        visitor
     }
-}
 
-impl Trie<(Rc<dyn Any>,f64)> {
-    /// Optimistically casts the reference-counted `dyn Any` at `addr` into type `V`, and returns a cloned value.
-    pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
-        self.get_leaf_node(addr)
-            .unwrap().0
-            .clone()
-            .downcast::<V>()
-            .ok()
-            .unwrap()
-            .as_ref()
-            .clone()
+    /// Add an address to the `AddrTrie`.
+    pub fn visit(&mut self, addr: &str) {
+        self.observe(addr, ());
     }
-}
 
-impl<V> Index<&str> for Trie<V> {
-    type Output = V;
-
-    fn index(&self, index: &str) -> &Self::Output {
-        self.get_leaf_node(index).unwrap()
+    /// Return `true` if every `addr` in `data` is also present in `self`,
+    /// and every leaf of `self` is also a leaf of `data`.
+    pub fn all_visited<V>(&self, data: &Trie<V>) -> bool {
+        for (addr, sub) in data.iter() {
+            if let Some(subvisitor) = self.search(&addr) {
+                if !subvisitor.is_leaf() && !subvisitor.all_visited(sub) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
+
+    /// Return the `AddrTrie` that contains all addresses present in `data`, but not present in `self`,
+    /// where each address that is a leaf of `data`
+    pub fn get_unvisited<V>(&self, data: &Trie<V>) -> Self {
+        let mut unvisited = Trie::new();
+        for (addr, sub) in data.iter() {
+            match self.search(addr) {
+                None => {
+                    unvisited.visit(addr);
+                }
+                Some(subvisitor) => {
+                    if !sub.is_leaf() && !subvisitor.is_leaf() {
+                        unvisited.insert(addr, subvisitor.get_unvisited(sub));
+                    }
+                }
+            }
+        }
+        unvisited
+    }
+
 }

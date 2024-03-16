@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use gen_rs::{TrieFnState,TrieFn,Unfold,uniform,normal,mvnormal};
+use gen_rs::{DynGenFnHandler,DynGenFn,Unfold,uniform,normal,mvnormal};
 use nalgebra::{dvector,dmatrix};
 
 use crate::pointed_model;
@@ -11,7 +11,7 @@ fn polar_to_cartesian(pol: &Point) -> Point {
     dvector![pol[0]*pol[1].cos(), pol[0]*pol[1].sin()]
 }
 
-fn _spiral_kernel(g: &mut TrieFnState<(i64,Point),Point>, args: (i64,Point)) -> Point {
+fn _spiral_kernel(g: &mut DynGenFnHandler<(i64,Point),Point>, args: (i64,Point)) -> Point {
     let (t, prev_pol) = args;
     let pol: Point;  // polar coords
     let pos: Point;  // cartesian coords

@@ -9,8 +9,8 @@ mod pointed_model;
 use pointed_model::types_2d::Bounds;
 use pointed_model::{PointedTrace,PointedModel};
 
-mod triefns;
-use triefns::{line_model, hierarchical_model};
+mod dyngenfns;
+use dyngenfns::{line_model, hierarchical_model};
 
 
 #[test]
@@ -52,7 +52,7 @@ fn test_importance_handcoded() -> std::io::Result<()> {
 
 
 #[test]
-pub fn test_importance_triefn() {
+pub fn test_importance_dyngenfn() {
     const NUM_SAMPLES: u32 = 10000;
 
     let mut rng = ThreadRng::default();
@@ -62,11 +62,11 @@ pub fn test_importance_triefn() {
     xs.iter()
         .enumerate()
         .for_each(|(i, x)| {
-            observations.insert_leaf_node(
-                Box::leak(format!("ys => {}", i).into_boxed_str()),
+            observations.observe(
+                Box::leak(format!("ys / {}", i).into_boxed_str()),
                 Rc::new(0.5*x - 1. + normal.random(&mut rng, (0., 0.1))) as Rc<dyn Any>);
             });
-    let (traces, log_normalized_weights, lml_estimate) = importance_sampling(&line_model, xs, Trie::from_unweighted(observations), NUM_SAMPLES);
+    let (traces, log_normalized_weights, lml_estimate) = importance_sampling(&line_model, xs, observations, NUM_SAMPLES);
 
     let probs = log_normalized_weights.iter()
         .map(|w| w.exp())
@@ -77,8 +77,8 @@ pub fn test_importance_triefn() {
         .collect::<Vec<&Trace<_,_,_>>>();
     for i in 0..20 {
         println!("Trace {}", i);
-        println!("slope = {}", &traces[i].data.get_leaf_node("slope").unwrap().0.clone().downcast::<f64>().ok().unwrap());
-        println!("intercept = {}", &traces[i].data.get_leaf_node("intercept").unwrap().0.clone().downcast::<f64>().ok().unwrap());
+        println!("slope = {}", &traces[i].data.read::<f64>("slope"));
+        println!("intercept = {}", &traces[i].data.read::<f64>("intercept"));
     }
     dbg!(lml_estimate);
 }
@@ -86,6 +86,9 @@ pub fn test_importance_triefn() {
 
 #[test]
 pub fn test_importance_hierarchical() -> std::io::Result<()> {
+    // note: this works with ~1,000,000 particles. Results
+    // are pretty poor with only 10,000 particles, especially
+    // the intercept.
     create_dir_all("../data")?;
 
     const NUM_SAMPLES: u32 = 10000;
@@ -99,27 +102,29 @@ pub fn test_importance_hierarchical() -> std::io::Result<()> {
         a + b*x + c*x*x + normal.random(&mut rng, (0., 0.1))
     ).collect::<Vec<f64>>();
     write("../data/hierarchical_data.json", format!("[{:?}, {:?}]", xs, ys))?;
-    ys.into_iter().enumerate().for_each(|(i, y)| { observations.insert_leaf_node(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
+    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
 
     let (traces, log_normalized_weights, lml_estimate) =
-        importance_sampling(&hierarchical_model, xs, Trie::from_unweighted(observations), NUM_SAMPLES);
+        importance_sampling(&hierarchical_model, xs, observations, NUM_SAMPLES);
+    // dbg!(&traces[0].data);
+    // return Ok(());
 
     let probs = log_normalized_weights.iter()
         .map(|w| w.exp())
         .collect::<Vec<f64>>();
-    let traces = (0..NUM_SAMPLES/10)
+    let traces = (0..(NUM_SAMPLES as f64).sqrt().trunc() as u32)
         .map(|_| categorical.random(&mut rng, probs.clone()))
         .map(|idx| &traces[idx])
         .collect::<Vec<&Trace<_,_,_>>>();
     let mut all_coeffs = vec![];
-    for i in 0..200 {
+    for i in 0..20 {
         println!("Trace {}", i);
-        let is_linear = &traces[i].data.get_leaf_node("is_linear").unwrap().0.clone().downcast::<bool>().ok().unwrap();
+        let is_linear = &traces[i].data.read::<bool>("is_linear");
         println!("is_linear = {}", is_linear);
-        let a = traces[i].data.get_leaf_node("coeffs => a").unwrap().0.clone().downcast::<f64>().ok().unwrap();
-        let b = traces[i].data.get_leaf_node("coeffs => b").unwrap().0.clone().downcast::<f64>().ok().unwrap();
-        let coeffs = if !*is_linear.as_ref() {
-            let c = traces[i].data.get_leaf_node("coeffs => c").unwrap().0.clone().downcast::<f64>().ok().unwrap();
+        let a = traces[i].data.read::<f64>("coeffs / a");
+        let b = traces[i].data.read::<f64>("coeffs / b");
+        let coeffs = if !*is_linear {
+            let c = traces[i].data.read::<f64>("coeffs / c");
             vec![a, b, c]
         } else {
             vec![a, b]
@@ -127,7 +132,7 @@ pub fn test_importance_hierarchical() -> std::io::Result<()> {
         println!("coeffs: {:?}", coeffs);
         all_coeffs.push(coeffs);
     }
-    write("../data/hierarchical_model.json", format!("{:?}", all_coeffs))?;
+    write("../data/hierarchical_model_is.json", format!("{:?}", all_coeffs))?;
 
     dbg!(lml_estimate);
     Ok(())

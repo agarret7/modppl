@@ -1,9 +1,9 @@
 // equivalent implementation of the example model on Ferric's README:
 // https://github.com/ferric-ai/ferric
 
-use gen_rs::{TrieFn,TrieFnState, bernoulli};
+use gen_rs::{DynGenFn,DynGenFnHandler, bernoulli};
 
-fn _grass(state: &mut TrieFnState<(),(bool,bool)>, args: ()) -> (bool,bool) {
+fn _grass(state: &mut DynGenFnHandler<(),(bool,bool)>, args: ()) -> (bool,bool) {
     let rain = state.sample_at(&bernoulli, 0.2, "rain");
 
     let sprinkler = if rain {
@@ -22,4 +22,4 @@ fn _grass(state: &mut TrieFnState<(),(bool,bool)>, args: ()) -> (bool,bool) {
 
     (rain, sprinkler)
 }
-const grass: TrieFn<(), (bool, bool)> = TrieFn { func: _grass };
+const grass: DynGenFn<(), (bool, bool)> = DynGenFn { func: _grass };

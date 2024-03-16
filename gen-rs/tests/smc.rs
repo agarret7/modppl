@@ -5,7 +5,7 @@ use std::{
     any::Any
     // fs::{write, create_dir_all}
 };
-use gen_rs::{Trie,GenFn,Distribution,modeling::dists::{self,normal},inference::ParticleSystem};
+use gen_rs::{GenFn,Distribution,DynTrie,u01,normal,inference::ParticleSystem};
 use nalgebra::{dvector};
 use rand::rngs::ThreadRng;
 // use serde_json;
@@ -13,12 +13,12 @@ use rand::rngs::ThreadRng;
 pub mod pointed_model;
 use pointed_model::types_2d::{Bounds,Point};
 
-pub mod triefns;
-use triefns::spiral_model;
+pub mod dyngenfns;
+use dyngenfns::spiral_model;
 
 
-fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Trie<(Rc<dyn Any>,f64)>>{
-    let init_angle = dists::u01(rng) * 2.*PI;
+fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<DynTrie>{
+    let init_angle = u01(rng) * 2.*PI;
 
     let xrange = (bounds.xmax - bounds.xmin) as f64;
     let yrange = (bounds.ymax - bounds.ymin) as f64;
@@ -29,7 +29,7 @@ fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Tr
     let radius = f64::max(bounds.xmax - bounds.xmin, bounds.ymax - bounds.ymin) / 5.;
     
     let mut observations = vec![];
-    let perturb_means = (0..timesteps).filter(|_| dists::u01(rng) < 0.3).collect::<Vec<_>>();
+    let perturb_means = (0..timesteps).filter(|_| u01(rng) < 0.3).collect::<Vec<_>>();
     for t in 0..timesteps {
         let mut deformation = 0.;
         for perturb_t in &perturb_means {
@@ -41,9 +41,9 @@ fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Tr
             center[0] + r*(t + init_angle).cos(),
             center[1] + r*(t + init_angle).sin()
         ];
-        let mut constraints = Trie::new();
-        constraints.insert_leaf_node("obs", Rc::new(obs) as Rc<dyn Any>);
-        observations.push(Trie::from_unweighted(constraints));
+        let mut constraints = DynTrie::new();
+        constraints.observe("obs", Rc::new(obs));
+        observations.push(constraints);
     }
     observations
 }

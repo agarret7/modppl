@@ -2,7 +2,7 @@
 pub mod dists;
 
 /// 
-pub mod triefn;
+pub mod dyngenfn;
 
 ///
 pub mod unfold;
