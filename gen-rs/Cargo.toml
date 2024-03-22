@@ -12,6 +12,7 @@ repository = "https://github.com/agarret7/gen-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+gen-rs-macros = { path = "../gen-rs-macros" }
 approx = "0.5.1"
 compute = "0.2.3"
 nalgebra = { features = ["serde-serialize"], version = "0.32.2" }

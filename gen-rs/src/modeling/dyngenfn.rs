@@ -11,14 +11,12 @@ impl DynTrie {
     /// Cast the inner `dyn Any` at `addr` into type `V` at runtime.
     pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
         self.search(addr)
-            .unwrap()
-            .value_ref()
-            .unwrap()
-            .clone()
-            .downcast::<V>()
-            .expect("read: improper type when downcasting")
-            .as_ref()
-            .clone()
+                .unwrap()
+                .value_ref()
+                .unwrap()
+                .downcast_ref::<V>()
+                .unwrap()
+                .clone()
     }
 }
 
@@ -302,7 +300,7 @@ pub struct DynGenFn<A,T> {
 
 impl<Args,Ret> DynGenFn<Args,Ret>{
     /// Dynamically construct a `DynGenFn` from a function at run-time.
-    pub fn new(func: fn(&mut DynGenFnHandler<Args,Ret>, Args) -> Ret) -> Self {
+    pub const fn new(func: fn(&mut DynGenFnHandler<Args,Ret>, Args) -> Ret) -> Self {
         DynGenFn { func }
     }
 }
@@ -332,7 +330,6 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let DynGenFnHandler::Generate {prng: _, mut trace, weight, constraints} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.logp = trace.data.measure();
-        // assert!(trace.logp.is_finite());
         trace.set_retv(retv);
         (trace, weight)
     }
@@ -355,7 +352,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let g = g.gc();  // add unvisited to discard
         let DynGenFnHandler::Update {prng: _, mut trace, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        // assert!(trace.logp.is_finite());
+        trace.logp = trace.data.measure();
         trace.set_retv(retv);
         (trace, discard, weight)
     }

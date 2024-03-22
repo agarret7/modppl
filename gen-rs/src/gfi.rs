@@ -16,7 +16,7 @@ pub struct Trace<Args,Data,Ret> {
 }
 
 
-impl<Args: 'static,Data: 'static,Ret: 'static> Trace<Args,Data,Ret> {
+impl<Args,Data,Ret> Trace<Args,Data,Ret> {
     /// Create a `Trace` with a `Some(retv)`.
     pub fn new(args: Args, data: Data, retv: Ret, logp: f64) -> Self {
         Trace { args, data, retv: Some(retv), logp }

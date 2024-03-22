@@ -11,6 +11,7 @@ pub struct Trie<V> {
     weight: f64
 }
 
+
 impl<V> Trie<V> {
 
     pub fn new() -> Self {
@@ -173,6 +174,7 @@ impl<V> Trie<V> {
             }
         }
     }
+
 }
 
 

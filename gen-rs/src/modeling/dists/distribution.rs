@@ -1,5 +1,5 @@
-use rand::{self,Rng,rngs::ThreadRng};
-use crate::{Trace, GenFn, GfDiff};
+use rand::{Rng,rngs::ThreadRng};
+use crate::{Trace, GenFn, GfDiff, DynTrie};
 
 
 /// Sample a random variable uniformly in the interval [0., 1.].
@@ -18,29 +18,47 @@ pub trait Distribution<T,U> {
 
 }
 
-/// Represents a (traced) sample of type `T` from a distribution.
-pub struct Sample<T>(pub T);
+use crate::{DynGenFn,DynGenFnHandler};
 
-impl<U: Clone,T: Clone,D: Distribution<T,U>> GenFn<U,Sample<T>,T> for D {
-    fn simulate(&self, args: U) -> Trace<U,Sample<T>,T> {
-        let mut prng = ThreadRng::default();
-        let x = self.random(&mut prng, args.clone());
-        let logp = self.logpdf(&x, args.clone());
-        Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }
-    }
-
-    fn generate(&self, args: U, constraints: Sample<T>) -> (Trace<U,Sample<T>,T>, f64) {
-        let x = constraints.0;
-        let logp = self.logpdf(&x, args.clone());
-        (Trace { args: args, data: Sample(x.clone()), retv: Some(x), logp }, logp)
-    }
-
-    fn update(&self,
-        _: Trace<U,Sample<T>,T>,
-        _: U,
-        _: GfDiff,
-        _: Sample<T>
-    ) -> (Trace<U,Sample<T>,T>, Sample<T>, f64) {
-        panic!("not implemented")
-    }
+fn _dist_genfn<'a,T: 'static + Clone,U: 'static + Clone>(g: &'a mut DynGenFnHandler<(impl Distribution<T,U> + 'static,U,String),T>, args: (impl Distribution<T,U>,U,String)) -> T {
+    let (dist, params, addr) = args;
+    g.sample_at(&dist, params, &addr)
 }
+pub const fn dist_genfn<T: 'static + Clone,U: 'static + Clone,D: Distribution<T,U> + 'static>() -> DynGenFn<(D,U,String),T> {
+    DynGenFn { func: _dist_genfn }
+}
+
+
+// use std::rc::Rc;
+
+// impl<U: Clone,T: 'static + Clone,D: Distribution<T,U>> GenFn<U,DynTrie,T> for D {
+//     fn simulate(&self, args: U) -> Trace<U,DynTrie,T> {
+//         let mut prng = ThreadRng::default();
+//         let x = self.random(&mut prng, args.clone());
+//         let logp = self.logpdf(&x, args.clone());
+//         let retv = Some(x.clone());
+//         Trace { args: args, data: DynTrie::leaf(Rc::new(x), logp), retv, logp }
+//     }
+
+//     fn generate(&self, args: U, constraints: DynTrie) -> (Trace<U,DynTrie,T>, f64) {
+//         let x: Rc<T>;
+//         if constraints.is_empty() {
+//             let mut prng = ThreadRng::default();
+//             x = Rc::new(self.random(&mut prng, args.clone()));
+//         } else {
+//             x = constraints.unwrap_inner_unchecked().downcast::<T>().ok().unwrap();
+//         }
+//         let logp = self.logpdf(&x, args.clone());
+//         let retv = Some(x.as_ref().clone());
+//         (Trace { args: args, data: DynTrie::leaf(x, logp), retv, logp }, logp)
+//     }
+
+//     fn update(&self,
+//         _: Trace<U,DynTrie,T>,
+//         _: U,
+//         _: GfDiff,
+//         _: DynTrie
+//     ) -> (Trace<U,DynTrie,T>, DynTrie, f64) {
+//         panic!("not implemented")
+//     }
+// }

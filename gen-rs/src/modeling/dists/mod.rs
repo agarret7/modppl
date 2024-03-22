@@ -10,7 +10,7 @@ mod gamma;
 mod beta;
 
 
-pub use self::distribution::{u01,Distribution,Sample};
+pub use self::distribution::{u01,Distribution};
 pub use {
     self::bernoulli::*,
     self::uniform::*,
@@ -21,3 +21,11 @@ pub use {
     self::gamma::*,
     self::beta::*
 };
+
+use std::{sync::Mutex};
+use once_cell::sync::Lazy;
+
+static DISTRIBUTIONS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| {
+    let mut d = vec![];
+    Mutex::new(d)
+});
