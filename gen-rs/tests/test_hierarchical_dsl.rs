@@ -1,12 +1,6 @@
-use rand::rngs::ThreadRng;
 use std::fs::{write, create_dir_all};
-use std::rc::{Rc,Weak};
-use std::any::Any;
-use gen_rs::{Distribution,bernoulli,normal,Trace,GenFn,DynTrie,DynGenFn,DynGenFnHandler,mh};
-use gen_rs_macros::dyngen;
+use gen_rs::prelude::*;
 
-
-type DynTrace<Args,Ret> = Trace<Args,DynTrie,Ret>;
 
 dyngen!(
 fn linear() -> (f64,f64) {

@@ -1,20 +1,14 @@
-use gen_rs_macros::dyngen;
-use gen_rs::{mh, DynGenFn, DynGenFnHandler, GenFn};
-use gen_rs::{bernoulli, beta, normal};
-use gen_rs::{Trace,DynTrie};
-
-use std::rc::{Rc,Weak};
+use gen_rs::prelude::*;
 
 
-
-type DynTrace<Args,Ret> = Trace<Args,DynTrie,Ret>;
-
-dyngen!(fn hyperprior(a: f64, b: f64) -> bool {
+dyngen!(
+fn hyperprior(a: f64, b: f64) -> bool {
     let p = beta(a,b) %= "prob_is_small";
     bernoulli(p) %= "is_small"
 });
 
-dyngen!(fn model() -> f64 {
+dyngen!(
+fn model() -> f64 {
     if hyperprior(2.,2.) /= "var" {
         normal(0.,0.05) %= "y"
     } else {
@@ -22,10 +16,11 @@ dyngen!(fn model() -> f64 {
     }
 });
 
-dyngen!{fn proposal(tr: Weak<DynTrace<(),f64>>, drift: f64, addr: String) {
+dyngen!(
+fn proposal(tr: Weak<DynTrace<(),f64>>, drift: f64, addr: String) {
     let tr = tr.upgrade().unwrap();
     normal(tr.data.read::<f64>(&addr), drift) %= &addr;
-}}
+});
 
 #[test]
 pub fn test_parse() {

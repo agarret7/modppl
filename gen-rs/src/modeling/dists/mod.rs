@@ -21,11 +21,3 @@ pub use {
     self::gamma::*,
     self::beta::*
 };
-
-use std::{sync::Mutex};
-use once_cell::sync::Lazy;
-
-static DISTRIBUTIONS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| {
-    let mut d = vec![];
-    Mutex::new(d)
-});

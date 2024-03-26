@@ -6,17 +6,27 @@ use crate::{Trie, AddrTrie, GenFn, GfDiff, Trace};
 
 
 pub type DynTrie = Trie<Rc<dyn Any>>;
+pub type DynTrace<Args,Ret> = Trace<Args,DynTrie,Ret>;
 
 impl DynTrie {
     /// Cast the inner `dyn Any` at `addr` into type `V` at runtime.
     pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
-        self.search(addr)
-                .unwrap()
-                .value_ref()
-                .unwrap()
-                .downcast_ref::<V>()
-                .unwrap()
-                .clone()
+        match self.search(addr) {
+            Some(v) => {
+                let v_typed = v.value_ref()
+                 .unwrap()
+                 .downcast_ref::<V>();
+                match v_typed {
+                    Some(x) => { x.clone() }
+                    None => {
+                        panic!("read: failed when downcasting type at address \"{}\"", addr);
+                    }
+                }
+            }
+            None => {
+                panic!("read: failed when searching empty address \"{}\"", addr);
+            }
+        }
     }
 }
 
@@ -26,14 +36,14 @@ pub enum DynGenFnHandler<'a,A,T> {
     Simulate {
         prng: &'a mut ThreadRng,
         ///
-        trace: Trace<A,DynTrie,T>,
+        trace: DynTrace<A,T>,
     },
 
     /// State for executing `GenFn::generate` in a `DynGenFn`.
     Generate {
         prng: &'a mut ThreadRng,
         ///
-        trace: Trace<A,DynTrie,T>,
+        trace: DynTrace<A,T>,
         ///
         weight: f64,
         ///
@@ -44,7 +54,7 @@ pub enum DynGenFnHandler<'a,A,T> {
     Update {
         prng: &'a mut ThreadRng,
         ///
-        trace: Trace<A,DynTrie,T>,
+        trace: DynTrace<A,T>,
         ///
         constraints: DynTrie,
         ///
@@ -241,7 +251,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
         }
     }
 
-    fn _gc(
+    pub fn collect_unvisited(
         mut trie: DynTrie,
         unvisited: &AddrTrie,
     ) -> (DynTrie,DynTrie) {
@@ -255,7 +265,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                 if subunvisited.is_leaf() {
                     garbage.insert(addr, sub);
                 } else {
-                    let (sub, subgarbage) = Self::_gc(sub, subunvisited);
+                    let (sub, subgarbage) = Self::collect_unvisited(sub, subunvisited);
                     if !sub.is_empty() {
                         trie.insert(addr, sub);
                     }
@@ -274,7 +284,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
     pub fn gc(self) -> Self {
         if let Self::Update { prng, trace, constraints, weight, mut discard, visitor } = self {
             let unvisited = visitor.get_unvisited(&trace.data);
-            let (data, garbage) = Self::_gc(trace.data, &unvisited);
+            let (data, garbage) = Self::collect_unvisited(trace.data, &unvisited);
             assert!(visitor.all_visited(&data));  // all unvisited nodes garbage-collected
             let data_weight = data.measure();
             discard.merge(garbage);
@@ -307,7 +317,7 @@ impl<Args,Ret> DynGenFn<Args,Ret>{
 
 
 impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Args,Ret> {
-    fn simulate(&self, args: Args) -> Trace<Args,DynTrie,Ret> {
+    fn simulate(&self, args: Args) -> DynTrace<Args,Ret> {
         let mut g = DynGenFnHandler::Simulate {
             prng: &mut ThreadRng::default(),
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
@@ -319,7 +329,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         trace
     }
 
-    fn generate(&self, args: Args, constraints: DynTrie) -> (Trace<Args,DynTrie,Ret>, f64) {
+    fn generate(&self, args: Args, constraints: DynTrie) -> (DynTrace<Args,Ret>, f64) {
         let mut g = DynGenFnHandler::Generate {
             prng: &mut ThreadRng::default(),
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
@@ -335,11 +345,11 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
     }
 
     fn update(&self,
-        trace: Trace<Args,DynTrie,Ret>,
+        trace: DynTrace<Args,Ret>,
         args: Args,
         _: GfDiff,
         constraints: DynTrie
-    ) -> (Trace<Args,DynTrie,Ret>, DynTrie, f64) {
+    ) -> (DynTrace<Args,Ret>, DynTrie, f64) {
         let mut g = DynGenFnHandler::Update {
             prng: &mut ThreadRng::default(),
             trace,

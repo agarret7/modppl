@@ -19,7 +19,7 @@ pub fn test_add_remove_inverse() {
     assert_eq!(root_before, root);
 }
 
-// searching the address of an witnessd value should yield the leaf trie
+// searching the address of an witnessed value should yield the leaf trie
 #[test]
 pub fn test_search_witnessd_value() {
     let mut root = Trie::<i32>::new();
