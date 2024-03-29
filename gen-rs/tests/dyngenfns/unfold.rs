@@ -11,7 +11,7 @@ fn polar_to_cartesian(pol: &Point) -> Point {
     dvector![pol[0]*pol[1].cos(), pol[0]*pol[1].sin()]
 }
 
-fn _spiral_kernel(g: &mut DynGenFnHandler<(i64,Point),Point>, args: (i64,Point)) -> Point {
+fn _spiral_kernel_func(g: &mut DynGenFnHandler<(i64,Point),Point>, args: (i64,Point)) -> Point {
     let (t, prev_pol) = args;
     let pol: Point;  // polar coords
     let pos: Point;  // cartesian coords
@@ -29,4 +29,5 @@ fn _spiral_kernel(g: &mut DynGenFnHandler<(i64,Point),Point>, args: (i64,Point))
     g.sample_at(&mvnormal, (pos, dmatrix![0.001, 0.; 0., 0.001]), "obs");
     return pol;
 }
-pub const spiral_model: Unfold<Point> = Unfold { kernel: _spiral_kernel };
+const spiral_kernel_func: DynGenFn<(i64,Point),Point> = DynGenFn { func: _spiral_kernel_func };
+pub const spiral_model: Unfold<Point> = Unfold { kernel: spiral_kernel_func };

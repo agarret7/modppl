@@ -1,4 +1,4 @@
-use crate::{Trace,GenFn,GfDiff,DynTrie,DynGenFnHandler};
+use crate::{DynGenFn, DynGenFnHandler, DynTrie, GenFn, GfDiff, Trace};
 use rand::rngs::ThreadRng;
 use std::any::Any;
 use std::rc::Rc;
@@ -8,15 +8,18 @@ use std::rc::Rc;
 /// Supports memory-efficient extension via the `GfDiff::Extend` flag (eg. as passed during a `ParticleSystem::step`).
 pub struct Unfold<State> {
     /// A random kernel that takes in a mutable reference to a `DynGenFnHandler<A,T>` and some `State`, effectfully mutates it, and produces a new `State`.
-    pub kernel: fn(&mut DynGenFnHandler<(i64,State),State>, (i64,State)) -> State
+    pub kernel: DynGenFn<(i64,State),State>
 }
 
 impl<State> Unfold<State> {
-    /// Dynamically construct an `Unfold` from a kernel at run-time.
-    fn new(kernel: fn(&mut DynGenFnHandler<(i64,State),State>, (i64,State)) -> State) -> Self {
+    /// Dynamically construct an `Unfold` from a kernel function at run-time.
+    pub fn new(kernel: DynGenFn<(i64,State),State>) -> Self {
         Unfold { kernel }
     }
 }
+
+use crate::ParticleSystem;
+pub type Particles<State> = ParticleSystem<State,Vec<DynTrie>,Vec<State>,Unfold<State>>;
 
 
 impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> {
@@ -29,7 +32,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
                 prng: &mut ThreadRng::default(),
                 trace: Trace { args: (t as i64, state.clone()), data: DynTrie::new(), retv: None, logp: 0. },
             };
-            state = (self.kernel)(&mut g, (t as i64, state.clone()));
+            state = (self.kernel.func)(&mut g, (t as i64, state.clone()));
             let DynGenFnHandler::Simulate {prng: _, mut trace} = g else { unreachable!() };
             vec_trace.retv.as_mut().unwrap().push(state.clone());
             vec_trace.data.push(trace.data);
@@ -52,7 +55,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
                 weight: 0.,
                 constraints
             };
-            state = (self.kernel)(&mut g, (t as i64, state.clone()));
+            state = (self.kernel.func)(&mut g, (t as i64, state.clone()));
             let DynGenFnHandler::Generate {prng: _, mut trace, weight, constraints} = g else { unreachable!() };
             assert!(constraints.is_empty());
             vec_trace.retv.as_mut().unwrap().push(state.clone());
@@ -84,7 +87,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
                         weight: 0.,
                         constraints
                     };
-                    state = (self.kernel)(&mut g, (prev_T + (t as i64), state.clone()));
+                    state = (self.kernel.func)(&mut g, (prev_T + (t as i64), state.clone()));
                     let DynGenFnHandler::Generate {prng: _, mut trace, weight, constraints} = g else { unreachable!() };
                     assert!(constraints.is_empty());
                     vec_trace.args.0 += 1;

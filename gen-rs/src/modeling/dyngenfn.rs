@@ -308,7 +308,7 @@ pub struct DynGenFn<A,T> {
     pub func: fn(&mut DynGenFnHandler<A,T>, A) -> T,
 }
 
-impl<Args,Ret> DynGenFn<Args,Ret>{
+impl<Args,Ret> DynGenFn<Args,Ret> {
     /// Dynamically construct a `DynGenFn` from a function at run-time.
     pub const fn new(func: fn(&mut DynGenFnHandler<Args,Ret>, Args) -> Ret) -> Self {
         DynGenFn { func }
