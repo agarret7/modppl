@@ -1,6 +1,5 @@
-use std::fmt::Display;
 use std::sync::Arc;
-use std::any::{Any, TypeId};
+use std::any::Any;
 use rand::rngs::ThreadRng;
 use crate::modeling::dists::Distribution;
 use crate::{Trie, AddrTrie, GenFn, GfDiff, Trace};
@@ -151,7 +150,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                                         return x.as_ref().clone();
                                     }
                                     GfDiff::Unknown => {
-                                        let prev_logp = call.logjp();
+                                        let prev_logp = call.weight();
                                         let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
                                         let logp = dist.logpdf(x.as_ref(), args);
                                         *weight += logp - prev_logp;
@@ -234,7 +233,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     Some(choices) => {
                         match trace.data.remove(addr) {
                             Some(sub) => {
-                                let logjp = sub.logjp();
+                                let logjp = sub.weight();
                                 let subtrace = Trace { args: args.clone(), data: sub, retv: None, logjp };
                                 let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, choices);
                                 if !subdiscard.is_empty() {
@@ -260,7 +259,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                                         return retv;
                                     }
                                     GfDiff::Unknown => {
-                                        let logjp = sub.logjp();
+                                        let logjp = sub.weight();
                                         let subtrace = Trace { args: args.clone(), data: sub.clone(), retv: None, logjp };
                                         let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, DynTrie::new());
                                         if !(subdiscard.is_empty()) {
@@ -323,9 +322,9 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             let unvisited = visitor.get_unvisited(&trace.data);
             let (data, garbage) = Self::collect_unvisited(trace.data, &unvisited);
             assert!(visitor.all_visited(&data));  // all unvisited nodes garbage-collected
-            let data_weight = data.logjp();
+            let data_weight = data.weight();
             discard.merge(garbage);
-            let discard_weight = discard.logjp();
+            let discard_weight = discard.weight();
             Self::Update {
                 prng,
                 trace: Trace { args: trace.args, data, retv: trace.retv, logjp: data_weight - discard_weight },
@@ -363,7 +362,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let retv = (self.func)(&mut g, args);
         let DynGenFnHandler::Simulate {prng: _, mut trace} = g else { unreachable!() };
         trace.set_retv(retv);
-        trace.logjp = trace.data.logjp();
+        trace.logjp = trace.data.weight();
         trace
     }
 
@@ -377,7 +376,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let retv = (self.func)(&mut g, args);
         let DynGenFnHandler::Generate {prng: _, mut trace, weight, constraints} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        trace.logjp = trace.data.logjp();
+        trace.logjp = trace.data.weight();
         trace.set_retv(retv);
         (trace, weight)
     }
@@ -401,7 +400,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let g = g.gc();  // add unvisited to discard
         let DynGenFnHandler::Update {prng: _, mut trace, diff: _diff, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        trace.logjp = trace.data.logjp();
+        trace.logjp = trace.data.weight();
         trace.set_retv(retv);
         (trace, discard, weight)
     }
