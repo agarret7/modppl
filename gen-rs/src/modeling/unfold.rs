@@ -26,17 +26,17 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
     fn simulate(&self, T_and_args: (i64, State)) -> Trace<(i64,State),Vec<DynTrie>,Vec<State>> {
         let (T, mut state) = T_and_args;
         assert!(T >= 1);
-        let mut vec_trace = Trace { args: (T, state.clone()), data: vec![], retv: Some(vec![]), logp: 0. };
+        let mut vec_trace = Trace { args: (T, state.clone()), data: vec![], retv: Some(vec![]), logjp: 0. };
         for t in 0..T {
             let mut g = DynGenFnHandler::Simulate {
                 prng: &mut ThreadRng::default(),
-                trace: Trace { args: (t as i64, state.clone()), data: DynTrie::new(), retv: None, logp: 0. },
+                trace: Trace { args: (t as i64, state.clone()), data: DynTrie::new(), retv: None, logjp: 0. },
             };
             state = (self.kernel.func)(&mut g, (t as i64, state.clone()));
             let DynGenFnHandler::Simulate {prng: _, mut trace} = g else { unreachable!() };
             vec_trace.retv.as_mut().unwrap().push(state.clone());
             vec_trace.data.push(trace.data);
-            vec_trace.logp += trace.logp;
+            vec_trace.logjp += trace.logjp;
         }
         vec_trace
     }
@@ -46,12 +46,12 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
     {
         let (T, mut state) = T_and_args;
         assert!(T >= 1);
-        let mut vec_trace = Trace { args: (T, state.clone()), data: vec![], retv: Some(vec![]), logp: 0. };
+        let mut vec_trace = Trace { args: (T, state.clone()), data: vec![], retv: Some(vec![]), logjp: 0. };
         let mut gen_weight = 0.;
         for (t,constraints) in vec_constraints.into_iter().enumerate() {
             let mut g = DynGenFnHandler::Generate {
                 prng: &mut ThreadRng::default(),
-                trace: Trace { args: (t as i64, state.clone()), data: DynTrie::new(), retv: None, logp: 0. },
+                trace: Trace { args: (t as i64, state.clone()), data: DynTrie::new(), retv: None, logjp: 0. },
                 weight: 0.,
                 constraints
             };
@@ -60,7 +60,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
             assert!(constraints.is_empty());
             vec_trace.retv.as_mut().unwrap().push(state.clone());
             vec_trace.data.push(trace.data);
-            vec_trace.logp += trace.logp;
+            vec_trace.logjp += trace.logjp;
             gen_weight += weight;
         }
         (vec_trace, gen_weight)
@@ -83,7 +83,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
                 for (t,constraints) in vec_constraints.into_iter().enumerate() {
                     let mut g = DynGenFnHandler::Generate {
                         prng: &mut ThreadRng::default(),
-                        trace: Trace { args: (prev_T + (t as i64), state.clone()), data: DynTrie::new(), retv: None, logp: 0. },
+                        trace: Trace { args: (prev_T + (t as i64), state.clone()), data: DynTrie::new(), retv: None, logjp: 0. },
                         weight: 0.,
                         constraints
                     };
@@ -93,7 +93,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
                     vec_trace.args.0 += 1;
                     vec_trace.retv.as_mut().unwrap().push(state.clone());
                     vec_trace.data.push(trace.data);
-                    vec_trace.logp += trace.logp;
+                    vec_trace.logjp += trace.logjp;
                     update_weight += weight;
                 }
             },

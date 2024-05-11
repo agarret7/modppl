@@ -66,7 +66,7 @@ impl<V> Trie<V> {
         self.mapping.into_iter()
     }
 
-    pub fn measure(&self) -> f64 {
+    pub fn logjp(&self) -> f64 {
         self.weight
     }
 

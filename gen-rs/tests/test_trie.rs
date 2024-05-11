@@ -59,10 +59,10 @@ pub fn test_search_inserted_subtrie() {
 pub fn test_weighted_observation() {
     let mut root = Trie::<i32>::new();
     root.witness("test", 0, -1.3);
-    let w_before= root.measure();
+    let w_before= root.logjp();
     let w_sub = -5.3;
     root.witness("test/deep/nested", 3, w_sub);
-    let w_after = root.measure();
+    let w_after = root.logjp();
     assert_eq!(w_after - w_before, w_sub)
 }
 
@@ -73,10 +73,10 @@ pub fn test_weighted_subtrie() {
     let mut root = Trie::<i32>::new();
     let mut sub = Trie::leaf(6, -0.4);
     sub.witness("deep/nested", -4, 0.4);
-    let w_sub = sub.measure();
-    let w_before = root.measure();
+    let w_sub = sub.logjp();
+    let w_before = root.logjp();
     root.insert("test", sub);
-    let w_after = root.measure();
+    let w_after = root.logjp();
     assert_eq!(w_after - w_before, w_sub);
 }
 
@@ -113,20 +113,20 @@ pub fn test_ptrie_extended_example() {
     trie.witness("hello / mom", 1.0, 1.5);
     trie.witness("hello / world / player", 1.0, 1.5);
     let t = trie.search("hello / world");
-    assert_eq!(t.unwrap().measure(), 3.0);
-    assert_eq!(trie.measure(), 4.5);
+    assert_eq!(t.unwrap().logjp(), 3.0);
+    assert_eq!(trie.logjp(), 4.5);
 
     let mut sub = Trie::new();
     sub.witness("test", 1.0, 1.5);
     sub.witness("test / leaf", 1.0, 2.0);
     trie.insert("other", sub);
 
-    assert_eq!(trie.measure(), 8.0);
+    assert_eq!(trie.logjp(), 8.0);
 
     let helloworld = trie.remove("hello / world").unwrap();
 
-    assert_eq!(helloworld.measure(), 3.0);
-    assert_eq!(trie.measure(), 8.0 - 3.0);
+    assert_eq!(helloworld.logjp(), 3.0);
+    assert_eq!(trie.logjp(), 8.0 - 3.0);
 
     let mut hw_dup = Trie::leaf(1.1, 1.5);
     hw_dup.witness("player", 1.0, 1.5);

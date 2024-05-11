@@ -12,14 +12,14 @@ pub struct Trace<Args,Data,Ret> {
     pub retv: Option<Ret>,
 
     /// The log joint probability of all the data `log[p(data; args)]`.
-    pub logp: f64
+    pub logjp: f64
 }
 
 
 impl<Args,Data,Ret> Trace<Args,Data,Ret> {
     /// Create a `Trace` with a `Some(retv)`.
-    pub fn new(args: Args, data: Data, retv: Ret, logp: f64) -> Self {
-        Trace { args, data, retv: Some(retv), logp }
+    pub fn new(args: Args, data: Data, retv: Ret, logjp: f64) -> Self {
+        Trace { args, data, retv: Some(retv), logjp }
     }
 
     /// Set `self.retv` to `Some(v)`.
@@ -70,7 +70,7 @@ pub trait GenFn<Args,Data,Ret> {
     /// Use a generative function to propose some data.
     fn propose(&self, args: Args) -> (Data, f64) {
         let trace = self.simulate(args);
-        (trace.data, trace.logp)
+        (trace.data, trace.logjp)
     }
 
     /// Assess the conditional probability of some proposed `constraints` under a generative function.
@@ -86,7 +86,7 @@ pub trait GenFn<Args,Data,Ret> {
 /// function can expect to a `Trace`'s arguments during an update.
 /// 
 /// Can be used to increase efficiency for example in particle filter procedures.
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub enum GfDiff {
     /// No change to input arguments.
     NoChange,

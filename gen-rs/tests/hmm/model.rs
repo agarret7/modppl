@@ -36,7 +36,7 @@ impl HMM {
         let obs_probs = self.params.emission_matrix.column(new_state).transpose().data.as_vec().to_vec();
         extend(trace, new_state, new_observation);
         let weight = categorical.logpdf(&(new_observation as i64), obs_probs);
-        trace.logp += weight;
+        trace.logjp += weight;
         weight
     }
 }

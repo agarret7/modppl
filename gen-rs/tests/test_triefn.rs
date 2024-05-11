@@ -21,7 +21,7 @@ pub fn test_DynGenFn_prototype() {
         constraints.observe("5", Arc::new(200.));
         let (trace, weight) = DynGenFn_prototype.generate(0.1, constraints);
         approx::assert_abs_diff_eq!(trace.retv.unwrap(), 3298., epsilon = 50.);
-        dbg!(trace.logp);
+        dbg!(trace.logjp);
         dbg!(weight);
     }
 }

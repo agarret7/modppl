@@ -151,7 +151,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                                         return x.as_ref().clone();
                                     }
                                     GfDiff::Unknown => {
-                                        let prev_logp = call.measure();
+                                        let prev_logp = call.logjp();
                                         let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
                                         let logp = dist.logpdf(x.as_ref(), args);
                                         *weight += logp - prev_logp;
@@ -234,8 +234,8 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     Some(choices) => {
                         match trace.data.remove(addr) {
                             Some(sub) => {
-                                let logp = sub.measure();
-                                let subtrace = Trace { args: args.clone(), data: sub, retv: None, logp };
+                                let logjp = sub.logjp();
+                                let subtrace = Trace { args: args.clone(), data: sub, retv: None, logjp };
                                 let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, choices);
                                 if !subdiscard.is_empty() {
                                     discard.insert(addr, subdiscard);
@@ -260,8 +260,8 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                                         return retv;
                                     }
                                     GfDiff::Unknown => {
-                                        let logp = sub.measure();
-                                        let subtrace = Trace { args: args.clone(), data: sub.clone(), retv: None, logp };
+                                        let logjp = sub.logjp();
+                                        let subtrace = Trace { args: args.clone(), data: sub.clone(), retv: None, logjp };
                                         let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, DynTrie::new());
                                         if !(subdiscard.is_empty()) {
                                             discard.insert(addr, subdiscard);
@@ -323,12 +323,12 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             let unvisited = visitor.get_unvisited(&trace.data);
             let (data, garbage) = Self::collect_unvisited(trace.data, &unvisited);
             assert!(visitor.all_visited(&data));  // all unvisited nodes garbage-collected
-            let data_weight = data.measure();
+            let data_weight = data.logjp();
             discard.merge(garbage);
-            let discard_weight = discard.measure();
+            let discard_weight = discard.logjp();
             Self::Update {
                 prng,
-                trace: Trace { args: trace.args, data, retv: trace.retv, logp: data_weight - discard_weight },
+                trace: Trace { args: trace.args, data, retv: trace.retv, logjp: data_weight - discard_weight },
                 diff,
                 constraints,
                 weight: weight - discard_weight,
@@ -358,26 +358,26 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
     fn simulate(&self, args: Args) -> DynTrace<Args,Ret> {
         let mut g = DynGenFnHandler::Simulate {
             prng: &mut ThreadRng::default(),
-            trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
+            trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logjp: 0. },
         };
         let retv = (self.func)(&mut g, args);
         let DynGenFnHandler::Simulate {prng: _, mut trace} = g else { unreachable!() };
         trace.set_retv(retv);
-        trace.logp = trace.data.measure();
+        trace.logjp = trace.data.logjp();
         trace
     }
 
     fn generate(&self, args: Args, constraints: DynTrie) -> (DynTrace<Args,Ret>, f64) {
         let mut g = DynGenFnHandler::Generate {
             prng: &mut ThreadRng::default(),
-            trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logp: 0. },
+            trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logjp: 0. },
             weight: 0.,
             constraints: constraints,
         };
         let retv = (self.func)(&mut g, args);
         let DynGenFnHandler::Generate {prng: _, mut trace, weight, constraints} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        trace.logp = trace.data.measure();
+        trace.logjp = trace.data.logjp();
         trace.set_retv(retv);
         (trace, weight)
     }
@@ -391,7 +391,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let mut g = DynGenFnHandler::Update {
             prng: &mut ThreadRng::default(),
             trace,
-            diff,
+            diff: if diff == GfDiff::NoChange && constraints.is_empty() { diff } else { GfDiff::Unknown },
             weight: 0.,
             constraints: constraints,
             discard: Trie::new(),
@@ -401,7 +401,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         let g = g.gc();  // add unvisited to discard
         let DynGenFnHandler::Update {prng: _, mut trace, diff: _diff, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
-        trace.logp = trace.data.measure();
+        trace.logjp = trace.data.logjp();
         trace.set_retv(retv);
         (trace, discard, weight)
     }
