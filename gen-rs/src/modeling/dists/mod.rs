@@ -6,6 +6,7 @@ mod categorical;
 mod normal;
 mod mvnormal;
 mod poisson;
+mod geometric;
 mod gamma;
 mod beta;
 
@@ -18,6 +19,7 @@ pub use {
     self::normal::*,
     self::mvnormal::*,
     self::poisson::*,
+    self::geometric::*,
     self::gamma::*,
     self::beta::*
 };

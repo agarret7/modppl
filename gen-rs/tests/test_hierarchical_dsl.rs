@@ -84,7 +84,7 @@ pub fn test_infer_hierarchical() -> std::io::Result<()> {
         a + b*x + c*x*x + normal.random(&mut rng, (0., 0.1))
     ).collect::<Vec<f64>>();
     write("../data/hierarchical_data.json", format!("[{:?}, {:?}]", xs, ys))?;
-    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Rc::new(y)); });
+    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Arc::new(y)); });
 
     let mut trace = hierarchical_model.generate(xs, observations).0;
     let mut all_coeffs = vec![];

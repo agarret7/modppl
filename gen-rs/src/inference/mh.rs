@@ -1,5 +1,4 @@
-use std::rc::{Rc,Weak};
-use approx;
+use std::sync::{Arc,Weak};
 use rand::{distributions::Uniform, rngs::ThreadRng, Rng};
 use crate::{Trace,GenFn,GfDiff::NoChange};
 
@@ -16,18 +15,18 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clon
     let mut prng = ThreadRng::default();
     let prev_trace = trace.clone();
 
-    let trace = Rc::new(trace);
-    let proposal_args_forward = (Rc::downgrade(&trace), proposal_args.clone());
+    let trace = Arc::new(trace);
+    let proposal_args_forward = (Arc::downgrade(&trace), proposal_args.clone());
     let (fwd_choices, fwd_weight) = proposal.propose(proposal_args_forward);
-    let trace = Rc::into_inner(trace).unwrap();
+    let trace = Arc::into_inner(trace).unwrap();
 
     let args = trace.args.clone();
     let (trace, discard, weight) = model.update(trace, args.clone(), NoChange, fwd_choices);
 
-    let trace = Rc::new(trace);
-    let proposal_args_backward = (Rc::downgrade(&trace), proposal_args);
+    let trace = Arc::new(trace);
+    let proposal_args_backward = (Arc::downgrade(&trace), proposal_args);
     let bwd_weight = proposal.assess(proposal_args_backward, discard);
-    let trace = Rc::into_inner(trace).unwrap();
+    let trace = Arc::into_inner(trace).unwrap();
 
     // dbg!(weight);
     // dbg!(fwd_weight);

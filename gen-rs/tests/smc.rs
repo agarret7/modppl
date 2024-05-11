@@ -1,12 +1,10 @@
 use std::fs::{write, create_dir_all};
 use std::{
-    rc::Rc,
-    f64::consts::PI,
-    any::Any
-    // fs::{write, create_dir_all}
+    sync::Arc,
+    f64::consts::PI
 };
-use gen_rs::{GenFn,Distribution,DynTrie,u01,normal,inference::ParticleSystem};
-use nalgebra::{dvector};
+use gen_rs::{Distribution,DynTrie,u01,normal,inference::ParticleSystem};
+use nalgebra::dvector;
 use rand::rngs::ThreadRng;
 // use serde_json;
 
@@ -42,7 +40,7 @@ fn simulate_loop(rng: &mut ThreadRng, bounds: &Bounds, timesteps: i64) -> Vec<Dy
             center[1] + r*(t + init_angle).sin()
         ];
         let mut constraints = DynTrie::new();
-        constraints.observe("obs", Rc::new(obs));
+        constraints.observe("obs", Arc::new(obs));
         observations.push(constraints);
     }
     observations

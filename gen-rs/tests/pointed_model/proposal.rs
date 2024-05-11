@@ -1,4 +1,4 @@
-use std::rc::Weak;
+use std::sync::Weak;
 use nalgebra::DMatrix;
 use gen_rs::{GLOBAL_RNG, Distribution, mvnormal, GenFn, Trace, GfDiff};
 use super::model::PointedBuffer;

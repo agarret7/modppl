@@ -36,7 +36,7 @@ impl<Args: Clone,Data: Clone,Ret: Clone,F: GenFn<(i64,Args),Data,Ret>> ParticleS
 
     fn multinomial_resampling(&mut self) {
         for i in 0..self.num_particles {
-            self.parents[i] = categorical.random(&mut self.rng, self.normalized_weights.clone());
+            self.parents[i] = categorical.random(&mut self.rng, self.normalized_weights.clone()) as usize;
         }
     }
 

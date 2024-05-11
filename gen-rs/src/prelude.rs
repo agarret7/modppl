@@ -1,5 +1,5 @@
 pub use rand::rngs::ThreadRng;
-pub use std::rc::{Rc,Weak};
+pub use std::sync::{Arc,Weak};
 pub use std::any::Any;
 
 pub use crate::{modeling::dists::*,

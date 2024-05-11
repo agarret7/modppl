@@ -31,11 +31,11 @@ impl HMM {
 
     pub fn kernel(&self, trace: &mut HMMTrace, state_probs: Vec<f64>, new_observation: usize) -> f64 {
         let new_state = GLOBAL_RNG.with_borrow_mut(|rng| {
-            categorical.random(rng, state_probs.clone())
+            categorical.random(rng, state_probs.clone()) as usize
         });
         let obs_probs = self.params.emission_matrix.column(new_state).transpose().data.as_vec().to_vec();
         extend(trace, new_state, new_observation);
-        let weight = categorical.logpdf(&new_observation, obs_probs);
+        let weight = categorical.logpdf(&(new_observation as i64), obs_probs);
         trace.logp += weight;
         weight
     }

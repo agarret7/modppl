@@ -25,7 +25,7 @@ fn proposal(tr: Weak<DynTrace<(),f64>>, drift: f64, addr: String) {
 #[test]
 pub fn test_parse() {
     let mut constraints = DynTrie::new();
-    constraints.observe("y", Rc::new(0.3));
+    constraints.observe("y", Arc::new(0.3));
     let mut tr = model.simulate(());
     for _ in 0..1000 {
         let (new_tr, accepted) = mh(&model, tr, &proposal, (0.5,String::from("var/prob_is_small")));

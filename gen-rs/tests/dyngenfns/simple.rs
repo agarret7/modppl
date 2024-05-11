@@ -1,5 +1,4 @@
-use std::any::Any;
-use std::rc::{Rc, Weak};
+use std::sync::Weak;
 use gen_rs::{Trace,DynTrie,DynGenFnHandler,DynGenFn,normal,mvnormal};
 use nalgebra::{DMatrix, DVector};
 

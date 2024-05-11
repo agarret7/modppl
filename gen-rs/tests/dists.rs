@@ -75,9 +75,9 @@ fn test_categorical() {
     let labels = vec!["a", "b", "c", "d", "e", "f"];
     let probs = vec![0.1, 0.3, 0.2, 0.1, 0.05, 0.25];
     let num_samples = 50000;
-    let sample_indices = (0..num_samples).map(|_| categorical.random(&mut rng, probs.clone())).collect::<Vec<usize>>();
+    let sample_indices = (0..num_samples).map(|_| categorical.random(&mut rng, probs.clone())).collect::<Vec<i64>>();
 
-    let samples = sample_indices.iter().map(|idx| labels[*idx]).collect::<Vec<&str>>();
+    let samples = sample_indices.iter().map(|idx| labels[*idx as usize]).collect::<Vec<&str>>();
 
     let mut count = HashMap::new();
 
@@ -101,8 +101,6 @@ fn test_normal() {
 
     let empirical_mu = mean(&samples);
     let empirical_std = standard_deviation(&samples, None);
-    dbg!(&empirical_mu);
-    dbg!(&empirical_std);
     approx::assert_abs_diff_eq!(empirical_mu, true_mu, epsilon = 0.001);
     approx::assert_abs_diff_eq!(empirical_std, true_std, epsilon = 0.001);
 

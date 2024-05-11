@@ -1,11 +1,12 @@
-use std::rc::Rc;
-use std::any::Any;
+use std::fmt::Display;
+use std::sync::Arc;
+use std::any::{Any, TypeId};
 use rand::rngs::ThreadRng;
 use crate::modeling::dists::Distribution;
 use crate::{Trie, AddrTrie, GenFn, GfDiff, Trace};
 
 
-pub type DynTrie = Trie<Rc<dyn Any>>;
+pub type DynTrie = Trie<Arc<dyn Any + Send + Sync>>;
 pub type DynTrace<Args,Ret> = Trace<Args,DynTrie,Ret>;
 
 impl DynTrie {
@@ -13,11 +14,12 @@ impl DynTrie {
     pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
         match self.search(addr) {
             Some(v) => {
-                let v_typed = v.value_ref()
-                 .unwrap()
-                 .downcast_ref::<V>();
+                let v_typed = v
+                    .value_ref()
+                    .unwrap()
+                    .downcast_ref::<V>();
                 match v_typed {
-                    Some(x) => { x.clone() }
+                    Some(v) => { v.clone() }
                     None => {
                         panic!("read: failed when downcasting type at address \"{}\"", addr);
                     }
@@ -56,6 +58,8 @@ pub enum DynGenFnHandler<'a,A,T> {
         ///
         trace: DynTrace<A,T>,
         ///
+        diff: GfDiff,
+        ///
         constraints: DynTrie,
         ///
         weight: f64,
@@ -72,7 +76,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
     /// 
     /// Return a clone of the sampled value.
     pub fn sample_at<
-        V: Clone + 'static,
+        V: Clone + Send + Sync + 'static,
         W: Clone + 'static
     >(&mut self, dist: &impl Distribution<V,W>, args: W, addr: &str) -> V {
         match self {
@@ -82,7 +86,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             } => {
                 let x = dist.random(prng, args.clone());
                 let logp = dist.logpdf(&x, args);
-                trace.data.witness(addr, Rc::new(x.clone()), logp);
+                trace.data.witness(addr, Arc::new(x.clone()), logp);
                 x
             }
 
@@ -105,7 +109,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     None => {
                         let x = dist.random(prng, args.clone());
                         let logp = dist.logpdf(&x, args);
-                        (Rc::new(x), logp)
+                        (Arc::new(x), logp)
                     }
                 };
 
@@ -117,6 +121,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             DynGenFnHandler::Update {
                 prng,
                 trace,
+                diff,
                 constraints,
                 weight,
                 discard,
@@ -139,14 +144,26 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     None => {
                         match trace.data.remove(addr) {
                             Some(call) => {
-                                let prev_logp = call.measure();
-                                let x = call.unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
-                                let logp = dist.logpdf(x.as_ref(), args);
-                                *weight += logp - prev_logp;
-                                (x, logp)
+                                match diff {
+                                    GfDiff::NoChange => {
+                                        let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                                        trace.data.insert(addr, call);
+                                        return x.as_ref().clone();
+                                    }
+                                    GfDiff::Unknown => {
+                                        let prev_logp = call.measure();
+                                        let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                                        let logp = dist.logpdf(x.as_ref(), args);
+                                        *weight += logp - prev_logp;
+                                        (x, logp)
+                                    }
+                                    _ => {
+                                        panic!("update: GfDiff::Extend not supported");
+                                    }
+                                }
                             }
                             None => {
-                                let x = Rc::new(dist.random(prng, args.clone()));
+                                let x = Arc::new(dist.random(prng, args.clone()));
                                 let logp = dist.logpdf(x.as_ref(), args);
                                 (x, logp)
                             }
@@ -168,7 +185,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
     /// Return a clone of the `retv`.
     pub fn trace_at<
         X: Clone + 'static,
-        Y: Clone + 'static
+        Y: Clone + Send + Sync + 'static
     >(&mut self, gen_fn: &impl GenFn<X,DynTrie,Y>, args: X, addr: &str) -> Y {
         match self {
             DynGenFnHandler::Simulate {
@@ -197,7 +214,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                         (subtrace.data, subtrace.retv)
                     }
                 };
-                sub.replace_inner(Rc::new(retv.clone().unwrap()));
+                sub.replace_inner(Arc::new(retv.clone().unwrap()));
                 assert!(trace.data.insert(addr, sub).is_none());
                 retv.unwrap()
             },
@@ -205,6 +222,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             DynGenFnHandler::Update {
                 prng,
                 trace,
+                diff,
                 constraints,
                 weight,
                 discard,
@@ -217,9 +235,11 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                         match trace.data.remove(addr) {
                             Some(sub) => {
                                 let logp = sub.measure();
-                                let subtrace = Trace { args: args.clone(), data: sub, retv: None, logp: logp };
+                                let subtrace = Trace { args: args.clone(), data: sub, retv: None, logp };
                                 let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, choices);
-                                discard.insert(addr, subdiscard);
+                                if !subdiscard.is_empty() {
+                                    discard.insert(addr, subdiscard);
+                                }
                                 *weight += d_weight;
                                 (subtrace.data, subtrace.retv)
                             }
@@ -233,9 +253,26 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     None => {
                         match trace.data.remove(addr) {
                             Some(sub) => {
-                                let retv = sub.value_ref().unwrap().downcast_ref::<Y>().unwrap().clone();
-                                assert!(trace.data.insert(addr, sub).is_none());
-                                return retv;
+                                match diff {
+                                    GfDiff::NoChange => {
+                                        let retv = sub.value_ref().unwrap().downcast_ref::<Y>().unwrap().clone();
+                                        assert!(trace.data.insert(addr, sub).is_none());
+                                        return retv;
+                                    }
+                                    GfDiff::Unknown => {
+                                        let logp = sub.measure();
+                                        let subtrace = Trace { args: args.clone(), data: sub.clone(), retv: None, logp };
+                                        let (subtrace, subdiscard, d_weight) = gen_fn.update(subtrace, args, GfDiff::Unknown, DynTrie::new());
+                                        if !(subdiscard.is_empty()) {
+                                            discard.insert(addr, subdiscard);
+                                        }
+                                        *weight += d_weight;
+                                        (subtrace.data, subtrace.retv)
+                                    }
+                                    _ => {
+                                        panic!("update: GfDiff::Extend not supported");
+                                    }
+                                }
                             }
                             None => {
                                 let subtrace = gen_fn.simulate(args);
@@ -244,7 +281,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                         }
                     }
                 };
-                sub.replace_inner(Rc::new(retv.clone().unwrap()));
+                sub.replace_inner(Arc::new(retv.clone().unwrap()));
                 assert!(trace.data.insert(addr, sub).is_none());
                 retv.unwrap()
             }
@@ -282,7 +319,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
     /// 
     /// Panics if `self` is not the `Self::Update` variant.
     pub fn gc(self) -> Self {
-        if let Self::Update { prng, trace, constraints, weight, mut discard, visitor } = self {
+        if let Self::Update { prng, trace, diff, constraints, weight, mut discard, visitor } = self {
             let unvisited = visitor.get_unvisited(&trace.data);
             let (data, garbage) = Self::collect_unvisited(trace.data, &unvisited);
             assert!(visitor.all_visited(&data));  // all unvisited nodes garbage-collected
@@ -292,6 +329,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             Self::Update {
                 prng,
                 trace: Trace { args: trace.args, data, retv: trace.retv, logp: data_weight - discard_weight },
+                diff,
                 constraints,
                 weight: weight - discard_weight,
                 discard,
@@ -347,12 +385,13 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
     fn update(&self,
         trace: DynTrace<Args,Ret>,
         args: Args,
-        _: GfDiff,
+        diff: GfDiff,
         constraints: DynTrie
     ) -> (DynTrace<Args,Ret>, DynTrie, f64) {
         let mut g = DynGenFnHandler::Update {
             prng: &mut ThreadRng::default(),
             trace,
+            diff,
             weight: 0.,
             constraints: constraints,
             discard: Trie::new(),
@@ -360,7 +399,7 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         };
         let retv = (self.func)(&mut g, args);
         let g = g.gc();  // add unvisited to discard
-        let DynGenFnHandler::Update {prng: _, mut trace, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
+        let DynGenFnHandler::Update {prng: _, mut trace, diff: _diff, weight, constraints, discard, visitor: _visitor} = g else { unreachable!() };
         assert!(constraints.is_empty());  // all constraints bound to trace
         trace.logp = trace.data.measure();
         trace.set_retv(retv);

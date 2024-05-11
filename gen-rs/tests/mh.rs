@@ -1,4 +1,5 @@
-use std::{any::Any,rc::Rc};
+use std::any::Any;
+use std::sync::Arc;
 use std::fs::{write, create_dir_all};
 use rand::rngs::ThreadRng;
 use nalgebra::{DVector, dvector, dmatrix};
@@ -55,7 +56,7 @@ pub fn test_metropolis_hastings_dyngenfn() -> std::io::Result<()> {
     let obs = dvector![0., 0.];
 
     let mut observations = Trie::new();
-    observations.observe("obs", Rc::new(obs) as Rc<dyn Any>);
+    observations.observe("obs", Arc::new(obs) as Arc<dyn Any + Send + Sync>);
 
     let mut trace = pointed_2d_model.generate((bounds, dmatrix![1., -3./5.; -3./5., 2.]), observations).0;
     for iter in 0..NUM_ITERS {
@@ -86,7 +87,7 @@ pub fn test_metropolis_hastings_hierarchical() -> std::io::Result<()> {
         a + b*x + c*x*x + normal.random(&mut rng, (0., 0.1))
     ).collect::<Vec<f64>>();
     write("../data/hierarchical_data.json", format!("[{:?}, {:?}]", xs, ys))?;
-    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
+    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Arc::new(y) as Arc<dyn Any + Send + Sync>); });
 
     let mut trace = hierarchical_model.generate(xs, observations).0;
     let mut all_coeffs = vec![];

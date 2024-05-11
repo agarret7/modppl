@@ -1,4 +1,4 @@
-use std::{any::Any, rc::Rc};
+use std::{any::Any, sync::Arc};
 use gen_rs::{bernoulli, normal, uniform, GenFn, DynTrie, DynGenFn, DynGenFnHandler};
 
 
@@ -17,8 +17,8 @@ pub fn test_DynGenFn_prototype() {
     for _ in (0..100).into_iter() {
         let _trace = DynGenFn_prototype.simulate(1.);
         let mut constraints = DynTrie::new();
-        constraints.observe("1", Rc::new(100.));
-        constraints.observe("5", Rc::new(200.));
+        constraints.observe("1", Arc::new(100.));
+        constraints.observe("5", Arc::new(200.));
         let (trace, weight) = DynGenFn_prototype.generate(0.1, constraints);
         approx::assert_abs_diff_eq!(trace.retv.unwrap(), 3298., epsilon = 50.);
         dbg!(trace.logp);
@@ -56,11 +56,11 @@ const DynGenFn_sample_at_update_weight_regression2: DynGenFn<(),()> = DynGenFn {
 pub fn test_sample_at_update_prev_and_constrained() {
     // sample_at
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(true));
-    constraints.observe("x", Rc::new(0.0));
+    constraints.observe("b", Arc::new(true));
+    constraints.observe("x", Arc::new(0.0));
     let tr = DynGenFn_sample_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
-    constraints.observe("x", Rc::new(1.0));
+    constraints.observe("x", Arc::new(1.0));
     let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
     assert_eq!(w, -0.5);
 }
@@ -69,11 +69,11 @@ pub fn test_sample_at_update_prev_and_constrained() {
 pub fn test_sample_at_update_no_prev_and_constrained() {
     // sample_at
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(false));
+    constraints.observe("b", Arc::new(false));
     let tr = DynGenFn_sample_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(true));
-    constraints.observe("x", Rc::new(1.0));
+    constraints.observe("b", Arc::new(true));
+    constraints.observe("x", Arc::new(1.0));
     let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -2.517551, epsilon = 1e-6);
 }
@@ -82,12 +82,12 @@ pub fn test_sample_at_update_no_prev_and_constrained() {
 pub fn test_update_sample_at_prev_and_unconstrained() {
     // sample_at
     let mut constraints = DynTrie::new();
-    constraints.observe("m", Rc::new(1.0));
-    constraints.observe("x", Rc::new(1.0));
-    constraints.observe("y", Rc::new(-0.3));
+    constraints.observe("m", Arc::new(1.0));
+    constraints.observe("x", Arc::new(1.0));
+    constraints.observe("y", Arc::new(-0.3));
     let tr = DynGenFn_sample_at_update_weight_regression2.generate((), constraints).0;
     let mut constraints = DynTrie::new();
-    constraints.observe("m", Rc::new(0.5));
+    constraints.observe("m", Arc::new(0.5));
     let w = DynGenFn_sample_at_update_weight_regression2.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, 0.4000000, epsilon = 1e-6);
 }
@@ -96,19 +96,19 @@ pub fn test_update_sample_at_prev_and_unconstrained() {
 pub fn test_update_no_prev_and_unconstrained() {
     // sample_at
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(false));
+    constraints.observe("b", Arc::new(false));
     let tr = DynGenFn_sample_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(true));
+    constraints.observe("b", Arc::new(true));
     let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -1.098612, epsilon = 1e-6);
 
     // trace_at
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(false));
+    constraints.observe("b", Arc::new(false));
     let tr = DynGenFn_trace_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
-    constraints.observe("b", Rc::new(true));
+    constraints.observe("b", Arc::new(true));
     let w = DynGenFn_trace_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -1.098612, epsilon = 1e-6);
 }

@@ -1,4 +1,5 @@
-use std::{any::Any,rc::Rc};
+use std::any::Any;
+use std::sync::Arc;
 use std::fs::{write,create_dir_all};
 use rand::rngs::ThreadRng;
 use nalgebra::{dvector,dmatrix};
@@ -40,7 +41,7 @@ fn test_importance_handcoded() -> std::io::Result<()> {
         .collect::<Vec<f64>>();
     let traces = (0..NUM_SAMPLES/10)
         .map(|_| categorical.random(&mut rng, probs.clone()))
-        .map(|idx| &traces[idx])
+        .map(|idx| &traces[idx as usize])
         .collect::<Vec<&PointedTrace>>();
     
     let data = traces.iter().map(|tr| tr.data.0.as_ref().unwrap().data.as_vec().to_vec()).collect::<Vec<Vec<f64>>>();
@@ -64,7 +65,7 @@ pub fn test_importance_dyngenfn() {
         .for_each(|(i, x)| {
             observations.observe(
                 Box::leak(format!("ys / {}", i).into_boxed_str()),
-                Rc::new(0.5*x - 1. + normal.random(&mut rng, (0., 0.1))) as Rc<dyn Any>);
+                Arc::new(0.5*x - 1. + normal.random(&mut rng, (0., 0.1))) as Arc<dyn Any + Send + Sync>);
             });
     let (traces, log_normalized_weights, lml_estimate) = importance_sampling(&line_model, xs, observations, NUM_SAMPLES);
 
@@ -73,7 +74,7 @@ pub fn test_importance_dyngenfn() {
         .collect::<Vec<f64>>();
     let traces = (0..NUM_SAMPLES/10)
         .map(|_| categorical.random(&mut rng, probs.clone()))
-        .map(|idx| &traces[idx])
+        .map(|idx| &traces[idx as usize])
         .collect::<Vec<&Trace<_,_,_>>>();
     for i in 0..20 {
         println!("Trace {}", i);
@@ -102,7 +103,7 @@ pub fn test_importance_hierarchical() -> std::io::Result<()> {
         a + b*x + c*x*x + normal.random(&mut rng, (0., 0.1))
     ).collect::<Vec<f64>>();
     write("../data/hierarchical_data.json", format!("[{:?}, {:?}]", xs, ys))?;
-    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Rc::new(y) as Rc<dyn Any>); });
+    ys.into_iter().enumerate().for_each(|(i, y)| { observations.observe(&format!("(y, {})", i), Arc::new(y) as Arc<dyn Any + Send + Sync>); });
 
     let (traces, log_normalized_weights, lml_estimate) =
         importance_sampling(&hierarchical_model, xs, observations, NUM_SAMPLES);
@@ -114,7 +115,7 @@ pub fn test_importance_hierarchical() -> std::io::Result<()> {
         .collect::<Vec<f64>>();
     let traces = (0..(NUM_SAMPLES as f64).sqrt().trunc() as u32)
         .map(|_| categorical.random(&mut rng, probs.clone()))
-        .map(|idx| &traces[idx])
+        .map(|idx| &traces[idx as usize])
         .collect::<Vec<&Trace<_,_,_>>>();
     let mut all_coeffs = vec![];
     for i in 0..20 {
