@@ -94,7 +94,7 @@ pub fn test_insert_into_occupied_panic() {
 #[should_panic]
 pub fn test_unwrap_inner_unchecked_panic() {
     let root = Trie::<u8>::new();
-    root.unwrap_inner_unchecked();
+    root.expect_inner("failed");
 }
 
 // taking inner value from an empty trie should panic
@@ -102,7 +102,7 @@ pub fn test_unwrap_inner_unchecked_panic() {
 #[should_panic]
 pub fn test_take_inner_unchecked_panic() {
     let mut root = Trie::<u8>::new();
-    root.take_inner_unchecked();
+    root.expect_inner("failed");
 }
 
 // an assortment of different tests of Trie
@@ -131,12 +131,12 @@ pub fn test_ptrie_extended_example() {
     let mut hw_dup = Trie::leaf(1.1, 1.5);
     hw_dup.witness("player", 1.0, 1.5);
     assert_ne!(helloworld, hw_dup);
-    let v = hw_dup.take_inner_unchecked();
+    let v = hw_dup.take_inner().unwrap();
     hw_dup.replace_inner(v+0.1_f32);
     assert_eq!(helloworld, hw_dup);
 
     let l = helloworld.search("player").unwrap();
     assert!(l.is_leaf());
-    let v = l.clone().take_inner_unchecked();
+    let v = l.clone().take_inner().unwrap();
     assert_eq!(v, 1.0);
 }

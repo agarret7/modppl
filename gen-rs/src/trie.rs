@@ -38,20 +38,20 @@ impl<V> Trie<V> {
         self.mapping.is_empty() && self.value.is_some()
     }
 
-    pub fn value_ref(&self) -> Option<&V> {
+    pub fn ref_inner(&self) -> Option<&V> {
         self.value.as_ref()
+    }
+
+    pub fn take_inner(&mut self) -> Option<V> {
+        self.value.take()
     }
 
     pub fn replace_inner(&mut self, value: V) -> Option<V> {
         self.value.replace(value)
     }
 
-    pub fn unwrap_inner_unchecked(self) -> V {
-        self.value.expect("unwrap: no value in root.")
-    }
-
-    pub fn take_inner_unchecked(&mut self) -> V {
-        self.value.take().expect("take: no value in root.")
+    pub fn expect_inner(self, msg: &str) -> V {
+        self.value.expect(msg)
     }
 
     pub fn iter(&self) -> hash_map::Iter<'_, String, Trie<V>> {

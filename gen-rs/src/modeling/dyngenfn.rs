@@ -14,7 +14,7 @@ impl DynTrie {
         match self.search(addr) {
             Some(v) => {
                 let v_typed = v
-                    .value_ref()
+                    .ref_inner()
                     .unwrap()
                     .downcast_ref::<V>();
                 match v_typed {
@@ -99,7 +99,10 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     // if Some, cast to type V, calculate change to trace.logp (and add to weight)
                     Some(choice) => {
                         debug_assert!(choice.is_leaf());
-                        let x = choice.unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                        let x = choice
+                            .expect_inner(&format!("error: no value found in {addr}"))
+                            .downcast::<V>()
+                            .expect(&format!("error: downcast failed at {addr}"));
                         let logp = dist.logpdf(x.as_ref(), args);
                         *weight += logp;
                         (x, logp)
@@ -135,7 +138,10 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                             debug_assert!(call.is_leaf());
                             discard.insert(addr, call);
                         };
-                        let x = choice.unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                        let x = choice
+                            .expect_inner(&format!("error: no value found in {addr}"))
+                            .downcast::<V>()
+                            .expect(&format!("error: downcast failed at {addr}"));
                         let logp = dist.logpdf(x.as_ref(), args);
                         *weight += logp;
                         (x, logp)
@@ -145,13 +151,21 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                             Some(call) => {
                                 match diff {
                                     GfDiff::NoChange => {
-                                        let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                                        let x = call
+                                            .clone()
+                                            .expect_inner(&format!("error: no value found in {addr}"))
+                                            .downcast::<V>()
+                                            .expect(&format!("error: downcast failed at {addr}"));
                                         trace.data.insert(addr, call);
                                         return x.as_ref().clone();
                                     }
                                     GfDiff::Unknown => {
                                         let prev_logp = call.weight();
-                                        let x = call.clone().unwrap_inner_unchecked().downcast::<V>().ok().unwrap();
+                                        let x = call
+                                            .clone()
+                                            .expect_inner(&format!("error: no value found in {addr}"))
+                                            .downcast::<V>()
+                                            .expect(&format!("error: downcast failed at {addr}"));
                                         let logp = dist.logpdf(x.as_ref(), args);
                                         *weight += logp - prev_logp;
                                         (x, logp)
@@ -254,7 +268,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                             Some(sub) => {
                                 match diff {
                                     GfDiff::NoChange => {
-                                        let retv = sub.value_ref().unwrap().downcast_ref::<Y>().unwrap().clone();
+                                        let retv = sub.ref_inner().unwrap().downcast_ref::<Y>().unwrap().clone();
                                         assert!(trace.data.insert(addr, sub).is_none());
                                         return retv;
                                     }
