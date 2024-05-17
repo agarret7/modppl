@@ -202,7 +202,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
     >(&mut self, gen_fn: &impl GenFn<X,DynTrie,Y>, args: X, addr: &str) -> Y {
         match self {
             DynGenFnHandler::Simulate {
-                prng,
+                prng: _,
                 trace,
             } => {
                 let subtrace = gen_fn.simulate(args);
@@ -211,7 +211,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             }
 
             DynGenFnHandler::Generate {
-                prng,
+                prng: _,
                 trace,
                 weight,
                 constraints,
@@ -233,7 +233,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
             },
 
             DynGenFnHandler::Update {
-                prng,
+                prng: _,
                 trace,
                 diff,
                 constraints,

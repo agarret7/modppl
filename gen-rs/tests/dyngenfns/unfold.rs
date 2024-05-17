@@ -4,7 +4,7 @@ use gen_rs::{DynGenFnHandler,DynGenFn,Unfold,uniform,normal,mvnormal};
 use nalgebra::{dvector,dmatrix};
 
 use crate::pointed_model;
-use pointed_model::types_2d::{Bounds, Point, uniform_2d};
+use pointed_model::types_2d::Point;
 
 
 fn polar_to_cartesian(pol: &Point) -> Point {

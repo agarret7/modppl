@@ -1,6 +1,5 @@
 use rand::rngs::ThreadRng;
 use super::Distribution;
-// use compute::functions::gamma;
 use rand_distr::{
     Distribution as _,
     Gamma as GammaSampler
@@ -14,8 +13,8 @@ pub struct Gamma { }
 pub const gamma: Gamma = Gamma { };
 
 impl Distribution<f64,(f64,f64)> for Gamma {
-    fn logpdf(&self, x: &f64, params: (f64,f64)) -> f64 {
-        let (a, b) = params;
+    fn logpdf(&self, _: &f64, params: (f64,f64)) -> f64 {
+        let (_, _) = params;
         panic!("not implemented");
     }
 

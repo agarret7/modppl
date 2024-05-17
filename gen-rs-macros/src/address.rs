@@ -1,5 +1,5 @@
 use syn::visit_mut::{self,VisitMut};
-use syn::{Expr,ExprBinary,ExprCall,BinOp,Lit};
+use syn::{Expr,ExprBinary,ExprCall,BinOp};
 use syn::parse_quote;
 
 pub struct ReplaceAddressedCalls;

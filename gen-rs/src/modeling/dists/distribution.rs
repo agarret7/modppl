@@ -1,5 +1,4 @@
 use rand::{Rng,rngs::ThreadRng};
-use crate::{Trace, GenFn, GfDiff, DynTrie};
 
 
 /// Sample a random variable uniformly in the interval [0., 1.].

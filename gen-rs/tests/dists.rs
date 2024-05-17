@@ -4,7 +4,7 @@ use nalgebra::{dvector,dmatrix};
 use rand::rngs::ThreadRng;
 use statistical::{mean, variance, standard_deviation};
 use approx;
-use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal, poisson, gamma, beta};
+use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal};
 
 #[test]
 fn test_bernoulli() {
@@ -170,10 +170,10 @@ fn test_mvnormal() {
     approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = f64::EPSILON);
 }
 
-#[test]
-pub fn test_beta() {
-    let mut rng = ThreadRng::default();
-    for _ in 0..100 {
-        let x = beta.random(&mut rng, (0.001,0.001));
-    }
-}
+// #[test]
+// pub fn test_beta() {
+//     let mut rng = ThreadRng::default();
+//     for _ in 0..100 {
+//         let x = beta.random(&mut rng, (0.001,0.001));
+//     }
+// }

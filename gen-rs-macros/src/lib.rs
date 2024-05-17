@@ -6,7 +6,7 @@ extern crate proc_macro;
 
 
 use syn::parse_macro_input;
-use syn::{Pat,PatType,Ident,ItemFn,FnArg,ReturnType};
+use syn::{Pat,PatType,ItemFn,FnArg,ReturnType};
 use syn::visit_mut::VisitMut;
 use quote::quote;
 

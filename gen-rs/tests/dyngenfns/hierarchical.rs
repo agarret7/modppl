@@ -1,5 +1,4 @@
-use std::any::Any;
-use std::sync::{Arc,Weak};
+use std::sync::Weak;
 use gen_rs::{DynTrie,Trace,DynGenFn,DynGenFnHandler,normal,bernoulli};
 
 
