@@ -70,7 +70,7 @@ pub enum DynGenFnHandler<'a,A,T> {
 }
 
 
-impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
+impl<A,T> DynGenFnHandler<'_,A,T> {
     /// Sample a random value from a distribution and insert it into the `self.trace.data` trie as a weighted leaf node.
     /// 
     /// Return a clone of the sampled value.
@@ -205,8 +205,9 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                 prng: _,
                 trace,
             } => {
-                let subtrace = gen_fn.simulate(args);
-                assert!(trace.data.insert(addr, subtrace.data).is_none());
+                let mut subtrace = gen_fn.simulate(args);
+                subtrace.data.replace_inner(Arc::new(subtrace.retv.clone().unwrap()));
+                trace.data.insert(addr, subtrace.data);
                 subtrace.retv.unwrap()
             }
 
@@ -228,7 +229,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     }
                 };
                 sub.replace_inner(Arc::new(retv.clone().unwrap()));
-                assert!(trace.data.insert(addr, sub).is_none());
+                trace.data.insert(addr, sub);
                 retv.unwrap()
             },
 
@@ -244,7 +245,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                 visitor.visit(addr);
 
                 let (mut sub, retv) = match constraints.remove(addr) {
-                    Some(choices) => {
+                    Some(mut choices) => {
                         match trace.data.remove(addr) {
                             Some(sub) => {
                                 let logjp = sub.weight();
@@ -269,7 +270,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                                 match diff {
                                     GfDiff::NoChange => {
                                         let retv = sub.ref_inner().unwrap().downcast_ref::<Y>().unwrap().clone();
-                                        assert!(trace.data.insert(addr, sub).is_none());
+                                        trace.data.insert(addr, sub);
                                         return retv;
                                     }
                                     GfDiff::Unknown => {
@@ -295,7 +296,7 @@ impl<A: 'static,T: 'static> DynGenFnHandler<'_,A,T> {
                     }
                 };
                 sub.replace_inner(Arc::new(retv.clone().unwrap()));
-                assert!(trace.data.insert(addr, sub).is_none());
+                trace.data.insert(addr, sub);
                 retv.unwrap()
             }
         }
@@ -367,7 +368,7 @@ impl<Args,Ret> DynGenFn<Args,Ret> {
 }
 
 
-impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Args,Ret> {
+impl<Args: Clone,Ret> GenFn<Args,DynTrie,Ret> for DynGenFn<Args,Ret> {
     fn simulate(&self, args: Args) -> DynTrace<Args,Ret> {
         let mut g = DynGenFnHandler::Simulate {
             prng: &mut ThreadRng::default(),
@@ -380,7 +381,8 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         trace
     }
 
-    fn generate(&self, args: Args, constraints: DynTrie) -> (DynTrace<Args,Ret>, f64) {
+    fn generate(&self, args: Args, mut constraints: DynTrie) -> (DynTrace<Args,Ret>, f64) {
+        constraints.take_inner();  // in case constraints came from a proposal
         let mut g = DynGenFnHandler::Generate {
             prng: &mut ThreadRng::default(),
             trace: Trace { args: args.clone(), data: Trie::new(), retv: None, logjp: 0. },
@@ -399,8 +401,9 @@ impl<Args: Clone + 'static,Ret: 'static> GenFn<Args,DynTrie,Ret> for DynGenFn<Ar
         trace: DynTrace<Args,Ret>,
         args: Args,
         diff: GfDiff,
-        constraints: DynTrie
+        mut constraints: DynTrie
     ) -> (DynTrace<Args,Ret>, DynTrie, f64) {
+        constraints.take_inner();  // in case constraints came from a proposal
         let mut g = DynGenFnHandler::Update {
             prng: &mut ThreadRng::default(),
             trace,

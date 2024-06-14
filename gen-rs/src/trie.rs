@@ -4,7 +4,6 @@ use crate::SplitAddr::{self,Prefix,Term};
 
 #[derive(Clone)]
 #[derive(Debug,PartialEq)]
-#[derive(Serialize, Deserialize)]
 pub struct Trie<V> {
     mapping: HashMap<String,Trie<V>>,
     value: Option<V>,
@@ -36,6 +35,10 @@ impl<V> Trie<V> {
 
     pub fn is_leaf(&self) -> bool {
         self.mapping.is_empty() && self.value.is_some()
+    }
+
+    pub fn len(&self) -> usize {
+        self.mapping.len()
     }
 
     pub fn ref_inner(&self) -> Option<&V> {
@@ -118,11 +121,15 @@ impl<V> Trie<V> {
         }
     }
 
-    pub fn insert(&mut self, addr: &str, sub: Trie<V>) -> Option<Trie<V>> {
+    pub fn insert(&mut self, addr: &str, sub: Trie<V>) {
         self.weight += sub.weight;
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
-                self.mapping.insert(addr.to_string(), sub)
+                if self.mapping.contains_key(addr) {
+                    panic!("insert: attempted to put into occupied address \"{addr}\"");
+                } else {
+                    self.mapping.insert(addr.to_string(), sub);
+                }
             }
             Prefix(first, rest) => {
                 let submap = self.mapping

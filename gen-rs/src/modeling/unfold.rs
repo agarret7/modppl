@@ -21,8 +21,8 @@ pub type Particles<State> = ParticleSystem<State,Vec<DynTrie>,Vec<State>,Unfold<
 
 
 impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> {
-    fn simulate(&self, final_final_t_and_args: (i64, State)) -> Trace<(i64,State),Vec<DynTrie>,Vec<State>> {
-        let (final_t, mut state) = final_final_t_and_args;
+    fn simulate(&self, final_t_and_args: (i64, State)) -> Trace<(i64,State),Vec<DynTrie>,Vec<State>> {
+        let (final_t, mut state) = final_t_and_args;
         assert!(final_t >= 1);
         let mut vec_trace = Trace { args: (final_t, state.clone()), data: vec![], retv: Some(vec![]), logjp: 0. };
         for t in 0..final_t {

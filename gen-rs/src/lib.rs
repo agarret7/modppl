@@ -34,8 +34,6 @@ pub mod gfi;
 pub mod address;
 
 /// Implementations of the `Trie` data structure, used extensively in `modeling::DynGenFn`. 
-// pub mod trie;
-
 pub mod trie;
 
 /// Distributions and a modeling DSL built on `Trie`s.
@@ -47,8 +45,7 @@ pub mod inference;
 mod mathutils;
 
 // modeling libs
-// pub use trie::Trie;
-pub use trie::{Trie,AddrTrie};
+pub use trie::{Trie, AddrTrie};
 pub use address::{SplitAddr, normalize_addr};
 pub use gfi::{Trace, GenFn, GfDiff};
 pub use modeling::dists::{
