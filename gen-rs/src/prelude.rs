@@ -6,6 +6,8 @@ pub use crate::{modeling::dists::*,
     Trace,GenFn,GfDiff,
     Trie,AddrTrie,
     DynTrie,DynTrace,DynGenFn,DynGenFnHandler,
-    mh,importance_sampling,ParticleSystem,Unfold
+    importance_sampling,importance_resampling,
+    metropolis_hastings,mh,
+    ParticleSystem,Unfold
 };
 pub use gen_rs_macros::dyngen;

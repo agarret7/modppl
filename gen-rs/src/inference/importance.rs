@@ -1,4 +1,5 @@
-use crate::{mathutils::logsumexp, Trace, GenFn};
+use crate::{mathutils::logsumexp, Trace, GenFn, Distribution, categorical};
+use rand::rngs::ThreadRng;
 
 
 /// Performs inference for a `GenFn` via importance sampling.
@@ -22,5 +23,22 @@ pub fn importance_sampling<Args: Clone,Data: Clone,Ret>(
     let log_normalized_weights = out.iter()
         .map(|(_, w)| w - log_total_weight)
         .collect::<Vec<f64>>();
-    return (out.into_iter().map(|(tr, _)| tr).collect::<_>(), log_normalized_weights, log_ml_estimate)
+    let traces = out.into_iter().map(|(tr, _)| tr).collect::<_>();
+    (traces, log_normalized_weights, log_ml_estimate)
+}
+
+pub fn importance_resampling<Args: Clone,Data: Clone,Ret>(
+    model: &impl GenFn<Args,Data,Ret>,
+    model_args: Args,
+    constraints: Data,
+    num_samples: u32,
+    num_ret_samples: u32
+) -> (Vec<Trace<Args,Data,Ret>>, Vec<usize>, f64) {
+    let (traces, weights, log_ml_estimate) = importance_sampling(model, model_args, constraints, num_samples);
+    let mut rng = ThreadRng::default();
+    let probs = weights.iter().map(|w| w.exp()).collect::<Vec<f64>>();
+    let resampled_indices = (0..num_ret_samples).map(|_| {
+        categorical.random(&mut rng, probs.clone()) as usize
+    }).collect::<Vec<usize>>();
+    (traces, resampled_indices, log_ml_estimate)
 }

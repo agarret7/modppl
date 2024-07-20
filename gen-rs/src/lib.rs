@@ -66,7 +66,7 @@ pub use modeling::unfold::Unfold;
 pub use mathutils::logsumexp;
 
 // inference libs
-pub use inference::importance_sampling;
+pub use inference::{importance_sampling, importance_resampling};
 pub use inference::metropolis_hastings;
 pub use inference::mh;
 pub use inference::ParticleSystem;
