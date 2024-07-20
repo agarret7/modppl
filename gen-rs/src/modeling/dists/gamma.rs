@@ -16,7 +16,7 @@ pub const gamma: Gamma = Gamma { };
 impl Distribution<f64,(f64,f64)> for Gamma {
     fn logpdf(&self, x: &f64, params: (f64,f64)) -> f64 {
         let (a, b) = params;
-        gamma_f(a).ln() + a*b.ln() + (1.-a)*x.ln() + x/b
+        (a-1.)*x.ln() - x/b - gamma_f(a).ln() - a*b.ln() 
     }
 
     fn random(&self, rng: &mut ThreadRng, params: (f64,f64)) -> f64 {

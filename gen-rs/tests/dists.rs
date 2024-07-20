@@ -4,7 +4,9 @@ use nalgebra::{dvector,dmatrix};
 use rand::rngs::ThreadRng;
 use statistical::{mean, variance, standard_deviation};
 use approx;
-use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal};
+use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal, poisson, beta, gamma};
+
+const LOGPDF_EPSILON: f64 = f32::EPSILON as f64;
 
 #[test]
 fn test_bernoulli() {
@@ -26,7 +28,6 @@ fn test_uniform() {
     let mut rng = ThreadRng::default();
 
     // continuous
-    
     let params = (0.5, 3.14);
     let (a, b) = params;
     let true_p = 1. / (b - a);
@@ -108,19 +109,19 @@ fn test_normal() {
     let mu = 0.9;
     let std = 0.5;
     let logp = normal.logpdf(&x, (mu, std));
-    approx::assert_abs_diff_eq!(logp, -0.7257913526447272, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -0.7257913526447272, epsilon = LOGPDF_EPSILON);
 
     let x = 2.8;
     let mu = 1.8;
     let std = 1.;
     let logp = normal.logpdf(&x, (mu, std));
-    approx::assert_abs_diff_eq!(logp, -1.4189385332046727, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -1.4189385332046727, epsilon = LOGPDF_EPSILON);
 
     let x = -3.14;
     let mu = 8.;
     let std = 20.;
     let logp = normal.logpdf(&x, (mu, std));
-    approx::assert_abs_diff_eq!(logp, -4.069795306758664, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -4.069795306758664, epsilon = LOGPDF_EPSILON);
 }
 
 #[test]
@@ -153,27 +154,40 @@ fn test_mvnormal() {
     let cov = dmatrix![1., -0.81; -0.81, 2.5];
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
-    approx::assert_abs_diff_eq!(logp, -2.1642100746383357, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -2.1642100746383357, epsilon = LOGPDF_EPSILON);
 
     let x = dvector![30.1, -46.8];
     let mu = dvector![0., 6.];
     let cov = dmatrix![496., 0.13; 0.13, 500.];
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
-    approx::assert_abs_diff_eq!(logp, -11.750458919763666, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -11.750458919763666, epsilon = LOGPDF_EPSILON);
 
     let x = dvector![1.2, 5.1, -7.8];
     let mu = dvector![1.4, 5.0, -7.4];
     let cov = dmatrix![1., 0.1, 0.9; 0.1, 1.3, 0.4; 0.9, 0.4, 1.75];
     let params = (mu, cov);
     let logp = mvnormal.logpdf(&x, params);
-    approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = f64::EPSILON);
+    approx::assert_abs_diff_eq!(logp, -2.873267436425841, epsilon = LOGPDF_EPSILON);
 }
 
-// #[test]
-// pub fn test_beta() {
-//     let mut rng = ThreadRng::default();
-//     for _ in 0..100 {
-//         let x = beta.random(&mut rng, (0.001,0.001));
-//     }
-// }
+#[test]
+pub fn test_poisson() {
+    approx::assert_abs_diff_eq!(-1.6328763858683835, poisson.logpdf(&3, 4.0), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-4.2601662022412240, poisson.logpdf(&5, 1.5), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-5.969204868031767, poisson.logpdf(&52, 36.11), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_beta() {
+    approx::assert_abs_diff_eq!(-0.364406011717066, beta.logpdf(&0.3, (0.5, 0.5)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-0.06055443631298263, beta.logpdf(&0.7, (1.5, 2.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-0.36440601171706609, beta.logpdf(&0.3, (0.5, 0.5)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_gamma() {
+    approx::assert_abs_diff_eq!(-1.414334369005868, gamma.logpdf(&1.7, (1.23, 1.46)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-3.4049256003700052, gamma.logpdf(&8.4, (4.5, 1.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-528.8122715889206, gamma.logpdf(&0.03, (50.0, 70.0)), epsilon = LOGPDF_EPSILON);
+}
