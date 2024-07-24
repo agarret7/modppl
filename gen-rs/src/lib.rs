@@ -45,8 +45,8 @@ pub mod inference;
 mod mathutils;
 
 // modeling libs
-pub use trie::{Trie, AddrTrie};
-pub use address::{SplitAddr, normalize_addr};
+pub use trie::Trie;
+pub use address::{SplitAddr, AddrMap, normalize_addr};
 pub use gfi::{Trace, GenFn, GfDiff};
 pub use modeling::dists::{
     u01,Distribution,
@@ -67,6 +67,5 @@ pub use mathutils::logsumexp;
 
 // inference libs
 pub use inference::{importance_sampling, importance_resampling};
-pub use inference::metropolis_hastings;
-pub use inference::mh;
+pub use inference::{metropolis_hastings, mh, regenerative_metropolis_hastings, regen_mh};
 pub use inference::ParticleSystem;

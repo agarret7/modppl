@@ -5,7 +5,7 @@ use rand::rngs::ThreadRng;
 /// Combinator struct for kernels that use the `DynGenFnHandler` DSL (`sample_at` and `trace_at`) and automatically implement the GFI.
 /// Supports memory-efficient extension via the `GfDiff::Extend` flag (eg. as passed during a `ParticleSystem::step`).
 pub struct Unfold<State> {
-    /// A random kernel that takes in a mutable reference to a `DynGenFnHandler<A,final_t>` and some `State`, effectfully mutates it, and produces a new `State`.
+    /// A stochastic kernel that takes in a mutable reference to a `DynGenFnHandler<A,final_t>` and some `State`, effectfully mutates it, and produces a new `State`.
     pub kernel: DynGenFn<(i64,State),State>
 }
 

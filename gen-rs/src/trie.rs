@@ -1,5 +1,5 @@
 use std::collections::{HashMap, hash_map};
-use crate::SplitAddr::{self,Prefix,Term};
+use crate::{SplitAddr::{self,Prefix,Term}, AddrMap};
 
 
 #[derive(Clone)]
@@ -182,60 +182,44 @@ impl<V> Trie<V> {
         }
     }
 
-}
-
-
-/// Trie for hierarchical address schemas (with empty values).
-pub type AddrTrie = Trie<()>;
-
-impl AddrTrie {
-
-    /// Return the unique `AddrTrie` that contains an `addr` if and only if `data` contains that `addr`.
-    pub fn schema<V>(data: &Trie<V>) -> Self {
-        let mut visitor = Trie::new();
-        for (addr, sub) in data.iter() {
-            visitor.insert(addr, Self::schema(sub));
-        }
-        visitor
-    }
-
-    /// Add an address to the `AddrTrie`.
-    pub fn visit(&mut self, addr: &str) {
-        self.observe(addr, ());
-    }
-
-    /// Return `true` if every `addr` in `data` is also present in `self`,
-    /// and every leaf of `self` is also a leaf of `data`.
-    pub fn all_visited<V>(&self, data: &Trie<V>) -> bool {
-        for (addr, sub) in data.iter() {
-            if let Some(subvisitor) = self.search(&addr) {
-                if !subvisitor.is_leaf() && !subvisitor.all_visited(sub) {
-                    return false;
-                }
+    pub fn schema(&self) -> AddrMap {
+        let mut amap = AddrMap::new();
+        for (addr, subtrie) in self.iter() {
+            if subtrie.is_leaf() {
+                amap.visit(addr);
             } else {
-                return false;
+                amap.insert(addr, subtrie.schema());
             }
         }
-        return true;
+        amap
     }
 
-    /// Return the `AddrTrie` that contains all addresses present in `data`, but not present in `self`,
-    /// where each address that is a leaf of `data`
-    pub fn get_unvisited<V>(&self, data: &Trie<V>) -> Self {
-        let mut unvisited = Trie::new();
-        for (addr, sub) in data.iter() {
-            match self.search(addr) {
-                None => {
-                    unvisited.visit(addr);
-                }
-                Some(subvisitor) => {
-                    if !sub.is_leaf() && !subvisitor.is_leaf() {
-                        unvisited.insert(addr, subvisitor.get_unvisited(sub));
+    pub fn collect(
+        mut self: Self,
+        mask: &AddrMap
+    ) -> (Self,Self,f64) {
+        let mut collected = Trie::new();
+        if &self.schema() == mask {
+            let weight = self.weight();
+            return (collected, self, weight);
+        } else if !mask.is_leaf() {
+            for (addr, submask) in mask.iter() {
+                let Some(sub) = self.remove(addr) else { unreachable!() };
+                if submask.is_leaf() {
+                    collected.insert(addr, sub);
+                } else {
+                    let (sub, subcollected, _) = sub.collect(submask);
+                    if !sub.is_empty() {
+                        self.insert(addr, sub);
+                    }
+                    if !subcollected.is_empty() {
+                        collected.insert(addr, subcollected);
                     }
                 }
             }
         }
-        unvisited
+        let weight = collected.weight();
+        (self, collected, weight)
     }
 
 }

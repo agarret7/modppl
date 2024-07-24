@@ -46,6 +46,94 @@ pub fn normalize_addr<'a>(addr: &'a str) -> String {
     }
 }
 
+use std::collections::{HashMap, hash_map};
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct AddrMap(HashMap<String,AddrMap>);
+
+impl AddrMap {
+    pub fn new() -> Self {
+        AddrMap(HashMap::new())
+    }
+
+    pub fn is_leaf(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn search(&self, addr: &str) -> Option<&AddrMap> {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.0.get(addr)
+            }
+            Prefix(first, rest) => {
+                match self.0.get(first) {
+                    Some(submask) => {
+                        submask.search(rest)
+                    }
+                    None => { None }
+                }
+            }
+        }
+    }
+
+    pub fn insert(&mut self, addr: &str, sub: AddrMap) {
+        self.0.insert(addr.to_string(), sub);
+    }
+
+    pub fn all_visited(&self, other: &AddrMap) -> bool {
+        for (addr, sub) in other.iter() {
+            if let Some(subvisitor) = self.search(&addr) {
+                if !subvisitor.is_leaf() && !subvisitor.all_visited(sub) {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    pub fn visit(&mut self, addr: &str) {
+        match SplitAddr::from_addr(addr) {
+            Term(addr) => {
+                self.0
+                    .entry(addr.to_string())
+                    .or_insert(AddrMap::new());
+            }
+            Prefix(first, rest) => {
+                let submask = self.0
+                    .entry(first.to_string())
+                    .or_insert(AddrMap::new());
+                submask.visit(rest);
+            }
+        }
+    }
+
+    pub fn complement(&self, mask: &Self) -> Self {
+        let mut cmap = AddrMap::new();
+        for (addr, sub) in self.iter() {
+            match mask.search(addr) {
+                None => {
+                    cmap.visit(addr);
+                }
+                Some(submask) => {
+                    if !sub.is_leaf() && !submask.is_leaf() {
+                        let subcomplement = sub.complement(submask);
+                        if !subcomplement.is_leaf() {
+                            cmap.insert(addr, subcomplement);
+                        }
+                    }
+                }
+            }
+        }
+        cmap
+    }
+
+    pub fn iter(&self) -> hash_map::Iter<'_, String, AddrMap> {
+        self.0.iter()
+    }
+}
+
 #[test]
 fn test_split_addr() {
     let key = SplitAddr::from_addr("test");

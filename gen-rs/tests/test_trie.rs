@@ -19,18 +19,18 @@ pub fn test_add_remove_inverse() {
     assert_eq!(root_before, root);
 }
 
-// searching the address of an witnessed value should yield the leaf trie
+// searching the address of a witnessed value should yield the leaf trie
 #[test]
 pub fn test_search_witnessd_value() {
     let mut root = Trie::<i32>::new();
 
     root.witness("test", 2, -3.4);
     let leaf = Trie::leaf(2, -3.4);
-    let found = root.search("test").expect("witnessd value not found.");
+    let found = root.search("test").expect("witnessed value not found.");
     assert_eq!(*found, leaf);
 
     root.witness("test/deep/nested", 5, -1.2);
-    let found = root.search("test/deep/nested").expect("witnessd value not found.");
+    let found = root.search("test/deep/nested").expect("witnessed value not found.");
     let leaf = Trie::leaf(5, -1.2);
     assert_eq!(*found, leaf);
 }
@@ -54,7 +54,7 @@ pub fn test_search_inserted_subtrie() {
 }
 
 // taking the difference of measured weights before and after
-// observing a value should yield the weight of the observation
+// witnessing a value should yield the weight of the witness
 #[test]
 pub fn test_weighted_observation() {
     let mut root = Trie::<i32>::new();
@@ -80,7 +80,7 @@ pub fn test_weighted_subtrie() {
     assert_eq!(w_after - w_before, w_sub);
 }
 
-// observing an occupied address should panic
+// witnessing an occupied address should panic
 #[test]
 #[should_panic]
 pub fn test_insert_into_occupied_panic() {
@@ -89,7 +89,7 @@ pub fn test_insert_into_occupied_panic() {
     root.witness("some/address", (-1,0), 0.);
 }
 
-// unwrapping inner value from an empty trie should panic
+// unwrapping the inner value from an empty trie should panic
 #[test]
 #[should_panic]
 pub fn test_unwrap_inner_unchecked_panic() {
@@ -97,17 +97,17 @@ pub fn test_unwrap_inner_unchecked_panic() {
     root.expect_inner("failed");
 }
 
-// taking inner value from an empty trie should panic
+// taking the inner value from an empty trie should panic
 #[test]
 #[should_panic]
 pub fn test_take_inner_unchecked_panic() {
-    let mut root = Trie::<u8>::new();
+    let root = Trie::<u8>::new();
     root.expect_inner("failed");
 }
 
 // an assortment of different tests of Trie
 #[test]
-pub fn test_ptrie_extended_example() {
+pub fn test_trie_extended_example() {
     let mut trie = Trie::new();
     trie.witness("hello / world", 1.2, 1.5);
     trie.witness("hello / mom", 1.0, 1.5);

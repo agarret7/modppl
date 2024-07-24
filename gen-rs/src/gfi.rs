@@ -1,3 +1,5 @@
+use crate::AddrMap;
+
 /// Representation of the probabilistic execution of a `GenFn`.
 #[derive(Clone)]
 pub struct Trace<Args,Data,Ret> {
@@ -43,7 +45,7 @@ impl<Args,Data,Ret> Trace<Args,Data,Ret> {
 /// 
 /// This terminology may be slightly unusual to users from other languages;
 /// `data` refers to all random variables, and `constraints` more precisely
-/// refers to a subset of the data that we observe. 
+/// refers to a subset of the data that we observe.
 pub trait GenFn<Args,Data,Ret> {
 
     /// Execute the generative function and return a sampled trace.
@@ -61,6 +63,15 @@ pub trait GenFn<Args,Data,Ret> {
         diff: GfDiff,
         constraints: Data                    // Data := forward choices
     ) -> (Trace<Args,Data,Ret>, Data, f64);  // Data := backward choices
+
+    fn regenerate(&self,
+        trace: Trace<Args,Data,Ret>,
+        args: Args,
+        diff: GfDiff,
+        mask: &AddrMap
+    ) -> (Trace<Args,Data,Ret>, f64) {
+        panic!("regenerate: impl not found")
+    }
 
     /// Call a generative function and return the output.
     fn call(&self, args: Args) -> Ret {
@@ -85,7 +96,7 @@ pub trait GenFn<Args,Data,Ret> {
 /// Flag that gives information about the type of incremental difference a generative
 /// function can expect to a `Trace`'s arguments during an update.
 /// 
-/// Can be used to increase efficiency for example in particle filter procedures.
+/// Can be used to increase efficiency with incremental computation.
 #[derive(Debug,Clone,PartialEq)]
 pub enum GfDiff {
     /// No change to input arguments.
