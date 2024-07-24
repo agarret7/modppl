@@ -2,11 +2,23 @@ use std::collections::HashMap;
 use nalgebra::{dvector,dmatrix};
 
 use rand::rngs::ThreadRng;
-use statistical::{mean, variance, standard_deviation};
 use approx;
 use gen_rs::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal, poisson, beta, gamma};
 
 const LOGPDF_EPSILON: f64 = f32::EPSILON as f64;
+
+fn mean(v: &[f64]) -> f64 {
+    v.iter().sum::<f64>() / v.len() as f64
+}
+
+fn variance(v: &[f64]) -> f64 {
+    let c = mean(v);
+    v.iter().map(|x| (*x - c) * (*x - c)).sum::<f64>() / (v.len() as f64 - 1.)
+}
+
+fn standard_deviation(v: &[f64]) -> f64 {
+    variance(v).sqrt()
+}
 
 #[test]
 fn test_bernoulli() {
@@ -101,7 +113,7 @@ fn test_normal() {
     let samples = (0..50000).map(|_| normal.random(&mut rng, (true_mu, true_std))).collect::<Vec<f64>>();
 
     let empirical_mu = mean(&samples);
-    let empirical_std = standard_deviation(&samples, None);
+    let empirical_std = standard_deviation(&samples);
     approx::assert_abs_diff_eq!(empirical_mu, true_mu, epsilon = 0.001);
     approx::assert_abs_diff_eq!(empirical_std, true_std, epsilon = 0.001);
 
@@ -141,8 +153,8 @@ fn test_mvnormal() {
     let e_mu_y = mean(&sample_ys);
     let e_mu = dvector![e_mu_x, e_mu_y];
     approx::assert_abs_diff_eq!(e_mu, true_mu, epsilon = 0.05);
-    let e_var_x = variance(&sample_xs, None);
-    let e_var_y = variance(&sample_ys, None);
+    let e_var_x = variance(&sample_xs);
+    let e_var_y = variance(&sample_ys);
     let e_cov_xy = sample_xs.iter().zip(sample_ys)
         .map(|(x,y)| (x - true_mu[0])*(y - true_mu[1]))
         .sum::<f64>() / samples.len() as f64;
