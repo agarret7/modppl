@@ -1,7 +1,8 @@
 use nalgebra::{DVector,DMatrix};
+use rand::rngs::ThreadRng;
 
 use super::{HMMTrace,ParamStore,extend};
-use gen_rs::{GLOBAL_RNG,GenFn,GfDiff,Distribution,categorical};
+use gen_rs::{GenFn,GfDiff,Distribution,categorical};
 
 
 pub struct HMMParams {
@@ -30,9 +31,8 @@ impl HMM {
     }
 
     pub fn kernel(&self, trace: &mut HMMTrace, state_probs: Vec<f64>, new_observation: usize) -> f64 {
-        let new_state = GLOBAL_RNG.with_borrow_mut(|rng| {
-            categorical.random(rng, state_probs.clone()) as usize
-        });
+        let mut rng = ThreadRng::default();
+        let new_state = categorical.random(&mut rng, state_probs.clone()) as usize;
         let obs_probs = self.params.emission_matrix.column(new_state).transpose().data.as_vec().to_vec();
         extend(trace, new_state, new_observation);
         let weight = categorical.logpdf(&(new_observation as i64), obs_probs);

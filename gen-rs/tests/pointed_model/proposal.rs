@@ -1,8 +1,9 @@
 use std::sync::Weak;
 use nalgebra::DMatrix;
-use gen_rs::{GLOBAL_RNG, Distribution, mvnormal, GenFn, Trace, GfDiff};
+use gen_rs::{Distribution, mvnormal, GenFn, Trace, GfDiff};
 use super::model::PointedBuffer;
 use super::types_2d::{Point,Bounds};
+use rand::rngs::ThreadRng;
 
 
 pub struct DriftProposal {
@@ -14,13 +15,12 @@ pub type DriftProposalArgs = (Weak<Trace<Bounds,PointedBuffer,Point>>,());
 impl GenFn<DriftProposalArgs,PointedBuffer,()> for DriftProposal {
 
     fn simulate(&self, args: DriftProposalArgs) -> Trace<DriftProposalArgs,PointedBuffer,()> {
+        let mut rng = ThreadRng::default();
         let prev_trace = args.0.upgrade().unwrap();
         let mut choices = (None, prev_trace.data.1.clone());
 
-        GLOBAL_RNG.with_borrow_mut(|rng| {
-            let new_latent = mvnormal.random(rng, (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()));
-            choices.0 = Some(new_latent);
-        });
+        let new_latent = mvnormal.random(&mut rng, (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()));
+        choices.0 = Some(new_latent);
         let logp = mvnormal.logpdf(&choices.0.clone().unwrap(), (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()));
 
         Trace::new(args, choices, (), logp)
@@ -40,9 +40,8 @@ impl GenFn<DriftProposalArgs,PointedBuffer,()> for DriftProposal {
                 weight = logp;
             }
             None => {
-                new_latent = GLOBAL_RNG.with_borrow_mut(|rng| {
-                    mvnormal.random(rng, (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()))
-                });
+                let mut rng = ThreadRng::default();
+                new_latent = mvnormal.random(&mut rng, (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()));
                 logp = mvnormal.logpdf(&new_latent, (prev_trace.data.0.clone().unwrap(), self.drift_cov.clone()));
             }
         }

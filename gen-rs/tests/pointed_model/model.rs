@@ -1,6 +1,7 @@
 use nalgebra::DMatrix;
-use gen_rs::{GLOBAL_RNG, Distribution, mvnormal, Trace, GenFn, GfDiff};
+use gen_rs::{Distribution, mvnormal, Trace, GenFn, GfDiff};
 use super::types_2d::{Point,Bounds,uniform_2d};
+use rand::rngs::ThreadRng;
 
 
 pub struct PointedModel {
@@ -13,17 +14,17 @@ pub type PointedTrace = Trace<Bounds,PointedBuffer,Point>;
 impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
 
     fn simulate(&self, bounds: Bounds) -> PointedTrace {
-        GLOBAL_RNG.with_borrow_mut(|rng| {
-            let mut logjp = 0.;
-            let latent = uniform_2d.random(rng, bounds);
-            logjp += uniform_2d.logpdf(&latent, bounds);
-            let obs = mvnormal.random(rng, (latent.clone(), self.obs_cov.clone()));
-            logjp += mvnormal.logpdf(&obs, (obs.clone(), self.obs_cov.clone()));
-            PointedTrace::new(bounds, (Some(latent), Some(obs.clone())), obs, logjp)
-        })
+        let mut rng = ThreadRng::default();
+        let mut logjp = 0.;
+        let latent = uniform_2d.random(&mut rng, bounds);
+        logjp += uniform_2d.logpdf(&latent, bounds);
+        let obs = mvnormal.random(&mut rng, (latent.clone(), self.obs_cov.clone()));
+        logjp += mvnormal.logpdf(&obs, (obs.clone(), self.obs_cov.clone()));
+        PointedTrace::new(bounds, (Some(latent), Some(obs.clone())), obs, logjp)
     }
 
     fn generate(&self, bounds: Bounds, constraints: PointedBuffer) -> (PointedTrace, f64) {
+        let mut rng = ThreadRng::default();
         let mut logjp = 0.;
         let mut weight = 0.;
         let mut choices = (None, None);
@@ -37,12 +38,10 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
                 constrained_latent
             }
             None => {
-                GLOBAL_RNG.with_borrow_mut(|rng| {
-                    let latent_choice = uniform_2d.random(rng, bounds);
-                    let new_weight = uniform_2d.logpdf(&latent_choice, bounds);
-                    logjp += new_weight;
-                    latent_choice
-                })
+                let latent_choice = uniform_2d.random(&mut rng, bounds);
+                let new_weight = uniform_2d.logpdf(&latent_choice, bounds);
+                logjp += new_weight;
+                latent_choice
             }
         };
         choices.0 = Some(latent_choice.clone());
@@ -56,12 +55,10 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
                 constrained_obs
             }
             None => {
-                GLOBAL_RNG.with_borrow_mut(|rng| {
-                    let obs_choice = mvnormal.random(rng, (latent_choice.clone(), self.obs_cov.clone()));
-                    let new_weight = mvnormal.logpdf(&obs_choice, (latent_choice, self.obs_cov.clone()));
-                    logjp += new_weight;
-                    obs_choice
-                })
+                let obs_choice = mvnormal.random(&mut rng, (latent_choice.clone(), self.obs_cov.clone()));
+                let new_weight = mvnormal.logpdf(&obs_choice, (latent_choice, self.obs_cov.clone()));
+                logjp += new_weight;
+                obs_choice
             }
         };
         choices.1 = Some(obs_choice.clone());

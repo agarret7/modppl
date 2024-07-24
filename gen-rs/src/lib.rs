@@ -22,11 +22,6 @@ use rand::rngs::ThreadRng;
 
 pub mod prelude;
 
-thread_local!(
-    /// Forked PRNG, accessible as a static crate-level thread-local constant. (Use like `GLOBAL_RNG.with_borrow_mut(|rng| { ... })`).
-    pub static GLOBAL_RNG: RefCell<ThreadRng> = RefCell::new(ThreadRng::default())
-);
-
 /// Definition of the Generative Function Interface (GFI).
 pub mod gfi;
 
