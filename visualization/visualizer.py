@@ -123,7 +123,7 @@ def plot_smc_model_animation():
     ys_before = []
     xs_after = []
     ys_after = []
-    for i in range(100):
+    for i in range(20):
         with open("data/smc_traces_before_resample_%i.json" % i) as fp:
             data = json.load(fp)
             xs_before.append([pol[0]*cos(pol[1]) for pol in data])
