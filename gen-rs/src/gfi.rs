@@ -60,14 +60,14 @@ pub trait GenFn<Args,Data,Ret> {
     fn update(&self,
         trace: Trace<Args,Data,Ret>,
         args: Args,
-        diff: GfDiff,
+        diff: ArgDiff,
         constraints: Data                    // Data := forward choices
     ) -> (Trace<Args,Data,Ret>, Data, f64);  // Data := backward choices
 
     fn regenerate(&self,
         trace: Trace<Args,Data,Ret>,
         args: Args,
-        diff: GfDiff,
+        diff: ArgDiff,
         mask: &AddrMap
     ) -> (Trace<Args,Data,Ret>, f64) {
         panic!("regenerate: impl not found")
@@ -98,7 +98,7 @@ pub trait GenFn<Args,Data,Ret> {
 /// 
 /// Can be used to increase efficiency with incremental computation.
 #[derive(Debug,Clone,PartialEq)]
-pub enum GfDiff {
+pub enum ArgDiff {
     /// No change to input arguments.
     NoChange,
 

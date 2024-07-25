@@ -1,5 +1,5 @@
 use nalgebra::DMatrix;
-use gen_rs::{Distribution, mvnormal, Trace, GenFn, GfDiff};
+use gen_rs::{Distribution, mvnormal, Trace, GenFn,ArgDiff};
 use super::types_2d::{Point,Bounds,uniform_2d};
 use rand::rngs::ThreadRng;
 
@@ -66,9 +66,9 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
         (PointedTrace::new(bounds, choices, obs_choice, logjp), weight)
     }
 
-    fn update(&self, trace: PointedTrace, args: Bounds, diff: GfDiff, constraints: PointedBuffer) -> (PointedTrace, PointedBuffer, f64) {
+    fn update(&self, trace: PointedTrace, args: Bounds, diff:ArgDiff, constraints: PointedBuffer) -> (PointedTrace, PointedBuffer, f64) {
         match diff {
-            GfDiff::NoChange => {
+           ArgDiff::NoChange => {
                 let prev_choices = trace.data;
                 let bounds = trace.args;
                 let mut discard = (None, None);

@@ -1,4 +1,4 @@
-use crate::{mathutils::logsumexp, Trace, GenFn, Distribution, categorical};
+use crate::{logsumexp, Trace, GenFn, Distribution, categorical};
 use rand::rngs::ThreadRng;
 
 

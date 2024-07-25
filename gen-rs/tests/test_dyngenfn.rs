@@ -58,7 +58,7 @@ pub fn test_sample_at_update_prev_and_constrained() {
     let tr = DynGenFn_sample_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
     constraints.observe("x", Arc::new(1.0));
-    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
+    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::ArgDiff::Unknown, constraints).2;
     assert_eq!(w, -0.5);
 }
 
@@ -71,7 +71,7 @@ pub fn test_sample_at_update_no_prev_and_constrained() {
     let mut constraints = DynTrie::new();
     constraints.observe("b", Arc::new(true));
     constraints.observe("x", Arc::new(1.0));
-    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
+    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::ArgDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -2.517551, epsilon = 1e-6);
 }
 
@@ -85,7 +85,7 @@ pub fn test_update_sample_at_prev_and_unconstrained() {
     let tr = DynGenFn_sample_at_update_weight_regression2.generate((), constraints).0;
     let mut constraints = DynTrie::new();
     constraints.observe("m", Arc::new(0.5));
-    let w = DynGenFn_sample_at_update_weight_regression2.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
+    let w = DynGenFn_sample_at_update_weight_regression2.update(tr, (), gen_rs::ArgDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, 0.4000000, epsilon = 1e-6);
 }
 
@@ -97,7 +97,7 @@ pub fn test_update_no_prev_and_unconstrained() {
     let tr = DynGenFn_sample_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
     constraints.observe("b", Arc::new(true));
-    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
+    let w = DynGenFn_sample_at_update_weight_regression.update(tr, (), gen_rs::ArgDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -1.098612, epsilon = 1e-6);
 
     // trace_at
@@ -106,7 +106,7 @@ pub fn test_update_no_prev_and_unconstrained() {
     let tr = DynGenFn_trace_at_update_weight_regression.generate((), constraints).0;
     let mut constraints = DynTrie::new();
     constraints.observe("b", Arc::new(true));
-    let w = DynGenFn_trace_at_update_weight_regression.update(tr, (), gen_rs::GfDiff::Unknown, constraints).2;
+    let w = DynGenFn_trace_at_update_weight_regression.update(tr, (), gen_rs::ArgDiff::Unknown, constraints).2;
     approx::assert_abs_diff_eq!(w, -1.098612, epsilon = 1e-6);
 }
 
@@ -124,7 +124,7 @@ pub fn test_update_residual_constraints_panic() {
     let mut constraints = DynTrie::new();
     constraints.observe("abc", Arc::new(0.));
     let trace = DynGenFn_prototype.simulate(0.1);
-    DynGenFn_prototype.update(trace, 0.1, GfDiff::NoChange, constraints);
+    DynGenFn_prototype.update(trace, 0.1,ArgDiff::NoChange, constraints);
 }
 
 #[test]
@@ -178,7 +178,7 @@ pub fn test_update() {
     constraints.observe("branch", Arc::new(false));
     constraints.observe("y", Arc::new(y));
     constraints.observe("v/b", Arc::new(b));
-    let (new_trace, discard, weight) = foo.update(trace, (), GfDiff::NoChange, constraints);
+    let (new_trace, discard, weight) = foo.update(trace, (),ArgDiff::NoChange, constraints);
 
     // test discard
     assert_eq!(discard.read::<bool>("branch"), true);
@@ -229,7 +229,7 @@ pub fn test_update() {
     // update "a"
     let mut constraints = DynTrie::new();
     constraints.observe("a", Arc::new(1.));
-    let (new_trace, discard, weight) = loopy.update(trace, (), GfDiff::NoChange, constraints);
+    let (new_trace, discard, weight) = loopy.update(trace, (),ArgDiff::NoChange, constraints);
 
     // test discard, logjp, weight
     assert_eq!(discard.read::<f64>("a"), 0.);
@@ -252,7 +252,7 @@ pub fn test_update() {
     let trace = hierarchical_update.generate((), constraints).0;
     let mut constraints = DynTrie::new();
     constraints.observe("k", Arc::new(1_i64));
-    let (_, discard, weight) = hierarchical_update.update(trace, (), GfDiff::Unknown, constraints);
+    let (_, discard, weight) = hierarchical_update.update(trace, (),ArgDiff::Unknown, constraints);
     assert!(discard.search("value/1").is_some());
     assert!(discard.search("value/2").is_some());
     assert_eq!(
@@ -306,7 +306,7 @@ pub fn test_regenerate() {
         // test logjp
         let prev_mu = mu;
         mu = u01(&mut rng);
-        let (new_trace, weight) = foo.regenerate(trace, mu, GfDiff::Unknown, &mask);
+        let (new_trace, weight) = foo.regenerate(trace, mu,ArgDiff::Unknown, &mask);
         trace = new_trace;
 
         // test logjp

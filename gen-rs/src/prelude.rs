@@ -3,7 +3,7 @@ pub use std::sync::{Arc,Weak};
 pub use std::any::Any;
 
 pub use crate::{modeling::dists::*,
-    Trace,GenFn,GfDiff,
+    Trace,GenFn,ArgDiff,
     AddrMap,
     Trie,
     DynTrie,DynTrace,DynGenFn,DynGenFnHandler,

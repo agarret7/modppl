@@ -12,20 +12,12 @@ extern crate nalgebra;
 extern crate rand;
 extern crate regex;
 
-#[macro_use]
-extern crate serde_derive;
-
-
-use std::cell::RefCell;
-use rand::rngs::ThreadRng;
-
-
 pub mod prelude;
 
 /// Definition of the Generative Function Interface (GFI).
 pub mod gfi;
 
-/// Utilities for parsing addresses (special keys used in the `Trie` data structure).
+/// Utilities for parsing addresses (keys used in the `Trie` data structure).
 pub mod address;
 
 /// Implementations of the `Trie` data structure, used extensively in `modeling::DynGenFn`. 
@@ -37,12 +29,24 @@ pub mod modeling;
 /// Standard inference library.
 pub mod inference;
 
-mod mathutils;
+/// For an input vector of `[x1, ..., xn]`, return `log(exp(x1) + ... + exp(xn))`.
+pub fn logsumexp(xs: &Vec<f64>) -> f64 {
+    let max = xs.iter().cloned().fold(-1./0. /* -inf */, f64::max);
+    if max == f64::NEG_INFINITY {
+        f64::NEG_INFINITY
+    } else {
+        let mut sum_exp = 0.;
+        for x in xs {
+            sum_exp += (x - max).exp();
+        }
+        max + sum_exp.ln()
+    }
+}
 
 // modeling libs
 pub use trie::Trie;
 pub use address::{SplitAddr, AddrMap, normalize_addr};
-pub use gfi::{Trace, GenFn, GfDiff};
+pub use gfi::{Trace, GenFn,ArgDiff};
 pub use modeling::dists::{
     u01,Distribution,
     bernoulli,
@@ -58,7 +62,6 @@ pub use modeling::dists::{
 };
 pub use modeling::dyngenfn::{DynTrie,DynTrace,DynGenFn,DynGenFnHandler};
 pub use modeling::unfold::Unfold;
-pub use mathutils::logsumexp;
 
 // inference libs
 pub use inference::{importance_sampling, importance_resampling};

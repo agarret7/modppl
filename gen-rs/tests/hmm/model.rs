@@ -2,7 +2,7 @@ use nalgebra::{DVector,DMatrix};
 use rand::rngs::ThreadRng;
 
 use super::{HMMTrace,ParamStore,extend};
-use gen_rs::{GenFn,GfDiff,Distribution,categorical};
+use gen_rs::{GenFn,ArgDiff,Distribution,categorical};
 
 
 pub struct HMMParams {
@@ -59,11 +59,11 @@ impl GenFn<(i64,ParamStore),(Vec<Option<usize>>,Vec<Option<usize>>),Vec<usize>> 
         (trace, weight)
     }
 
-    fn update(&self, mut trace: HMMTrace, _: (i64, ParamStore), diff: gen_rs::GfDiff, constraints: (Vec<Option<usize>>,Vec<Option<usize>>))
+    fn update(&self, mut trace: HMMTrace, _: (i64, ParamStore), diff: gen_rs::ArgDiff, constraints: (Vec<Option<usize>>,Vec<Option<usize>>))
         -> (HMMTrace, (Vec<Option<usize>>, Vec<Option<usize>>), f64)
     {
         match diff {
-            GfDiff::Extend => {
+           ArgDiff::Extend => {
                 let new_observation = constraints.1.last().unwrap().unwrap();
                 let prev_state = trace.data.0.last().unwrap().unwrap();
                 let state_probs = self.params.transition_matrix.column(prev_state)

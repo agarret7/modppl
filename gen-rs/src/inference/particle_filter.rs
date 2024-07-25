@@ -1,7 +1,7 @@
 // mostly copied verbatim from: https://github.com/OpenGen/GenTL/blob/main/include/gentl/inference/particle_filter.h
 
 use rand::rngs::ThreadRng;
-use crate::{Trace,GenFn,GfDiff,Distribution,categorical,mathutils::logsumexp};
+use crate::{Trace,GenFn,ArgDiff,Distribution,categorical,logsumexp};
 
 
 /// Basic particle filter for generative functions with a time parameter as the first input argument.
@@ -76,7 +76,7 @@ impl<Args: Clone,Data: Clone,Ret: Clone,F: GenFn<(i64,Args),Data,Ret>> ParticleS
         for (i, trace) in self.traces.into_iter().enumerate() {
             let args = trace.args.clone();
             let new_args = (args.0 + 1, args.1);
-            let (new_trace, _, log_weight) = self.model.update(trace, new_args, GfDiff::Extend, constraints.clone());
+            let (new_trace, _, log_weight) = self.model.update(trace, new_args,ArgDiff::Extend, constraints.clone());
             tmp_traces.push(new_trace);
             tmp_log_weights.push(self.log_weights[i] + log_weight);
         }

@@ -1,6 +1,6 @@
 use std::sync::Weak;
 use nalgebra::DMatrix;
-use gen_rs::{Distribution, mvnormal, GenFn, Trace, GfDiff};
+use gen_rs::{Distribution, mvnormal, GenFn, Trace,ArgDiff};
 use super::model::PointedBuffer;
 use super::types_2d::{Point,Bounds};
 use rand::rngs::ThreadRng;
@@ -50,7 +50,7 @@ impl GenFn<DriftProposalArgs,PointedBuffer,()> for DriftProposal {
         (Trace::new(args, choices, (), logp), weight)
     }
 
-    fn update(&self, _: Trace<DriftProposalArgs,PointedBuffer,()>, _: DriftProposalArgs, _: GfDiff, _: PointedBuffer) -> (Trace<DriftProposalArgs,PointedBuffer,()>, PointedBuffer, f64) {
+    fn update(&self, _: Trace<DriftProposalArgs,PointedBuffer,()>, _: DriftProposalArgs, _:ArgDiff, _: PointedBuffer) -> (Trace<DriftProposalArgs,PointedBuffer,()>, PointedBuffer, f64) {
         panic!("not implemented")
     }
 }

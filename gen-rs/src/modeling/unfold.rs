@@ -1,4 +1,4 @@
-use crate::{DynGenFn, DynGenFnHandler, DynTrie, GenFn, GfDiff, Trace};
+use crate::{DynGenFn, DynGenFnHandler, DynTrie, GenFn,ArgDiff, Trace};
 use rand::rngs::ThreadRng;
 
 
@@ -67,7 +67,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
     fn update(&self,
         mut vec_trace: Trace<(i64,State),Vec<DynTrie>,Vec<State>>,
         final_t_and_args: (i64, State),
-        diff: GfDiff,
+        diff:ArgDiff,
         vec_constraints: Vec<DynTrie>
     ) -> (Trace<(i64,State),Vec<DynTrie>,Vec<State>>, Vec<DynTrie>, f64) {
         let (final_t, _) = final_t_and_args;
@@ -77,7 +77,7 @@ impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> 
         let mut state = vec_trace.retv.as_ref().unwrap().last().unwrap().clone();
         let mut update_weight = 0.;
         match diff {
-            GfDiff::Extend => {
+           ArgDiff::Extend => {
                 for (t,constraints) in vec_constraints.into_iter().enumerate() {
                     let mut g = DynGenFnHandler::Generate {
                         prng: &mut ThreadRng::default(),
