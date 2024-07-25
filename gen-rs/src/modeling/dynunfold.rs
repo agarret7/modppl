@@ -1,26 +1,25 @@
-use crate::{DynGenFn, DynGenFnHandler, DynTrie, GenFn,ArgDiff, Trace};
+use crate::{DynGenFn, DynGenFnHandler, DynTrie, GenFn,ArgDiff, Trace, ParticleSystem};
 use rand::rngs::ThreadRng;
 
 
 /// Combinator struct for kernels that use the `DynGenFnHandler` DSL (`sample_at` and `trace_at`) and automatically implement the GFI.
 /// Supports memory-efficient extension via the `GfDiff::Extend` flag (eg. as passed during a `ParticleSystem::step`).
-pub struct Unfold<State> {
+pub struct DynUnfold<State> {
     /// A stochastic kernel that takes in a mutable reference to a `DynGenFnHandler<A,final_t>` and some `State`, effectfully mutates it, and produces a new `State`.
     pub kernel: DynGenFn<(i64,State),State>
 }
 
-impl<State> Unfold<State> {
-    /// Dynamically construct an `Unfold` from a kernel function at run-time.
+impl<State> DynUnfold<State> {
+    /// Dynamically construct an `DynUnfold` from a kernel function at run-time.
     pub fn new(kernel: DynGenFn<(i64,State),State>) -> Self {
-        Unfold { kernel }
+        DynUnfold { kernel }
     }
 }
 
-use crate::ParticleSystem;
-pub type Particles<State> = ParticleSystem<State,Vec<DynTrie>,Vec<State>,Unfold<State>>;
 
+pub type DynParticles<State> = ParticleSystem<State,Vec<DynTrie>,Vec<State>,DynUnfold<State>>;
 
-impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for Unfold<State> {
+impl<State: Clone> GenFn<(i64,State),Vec<DynTrie>,Vec<State>> for DynUnfold<State> {
     fn simulate(&self, final_t_and_args: (i64, State)) -> Trace<(i64,State),Vec<DynTrie>,Vec<State>> {
         let (final_t, mut state) = final_t_and_args;
         assert!(final_t >= 1);

@@ -10,6 +10,6 @@ pub use crate::{modeling::dists::*,
     importance_sampling,importance_resampling,
     metropolis_hastings,mh,
     regenerative_metropolis_hastings, regen_mh,
-    ParticleSystem,Unfold
+    ParticleSystem,DynUnfold,DynParticles
 };
 pub use gen_rs_macros::dyngen;

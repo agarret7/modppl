@@ -105,7 +105,7 @@ impl<A,T> DynGenFnHandler<'_,A,T> {
             } => {
                 let x = dist.random(prng, args.clone());
                 let logp = dist.logpdf(&x, args);
-                trace.data.witness(addr, Arc::new(x.clone()), logp);
+                trace.data.w_observe(addr, Arc::new(x.clone()), logp);
                 x
             }
 
@@ -133,7 +133,7 @@ impl<A,T> DynGenFnHandler<'_,A,T> {
                     }
                 };
 
-                trace.data.witness(addr, x.clone(), logp);
+                trace.data.w_observe(addr, x.clone(), logp);
                 x.as_ref().clone()
             }
 
@@ -203,7 +203,7 @@ impl<A,T> DynGenFnHandler<'_,A,T> {
                     }
                 };
 
-                trace.data.witness(addr, x.clone(), logp);
+                trace.data.w_observe(addr, x.clone(), logp);
                 x.as_ref().clone()
             }
 
@@ -265,7 +265,7 @@ impl<A,T> DynGenFnHandler<'_,A,T> {
                     }
                 };
 
-                trace.data.witness(addr, x.clone(), logp);
+                trace.data.w_observe(addr, x.clone(), logp);
                 x.as_ref().clone()
             }
         }

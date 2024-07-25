@@ -61,7 +61,7 @@ pub use modeling::dists::{
     beta
 };
 pub use modeling::dyngenfn::{DynTrie,DynTrace,DynGenFn,DynGenFnHandler};
-pub use modeling::unfold::Unfold;
+pub use modeling::dynunfold::{DynUnfold,DynParticles};
 
 // inference libs
 pub use inference::{importance_sampling, importance_resampling};

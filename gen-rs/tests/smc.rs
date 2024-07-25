@@ -6,7 +6,6 @@ use std::{
 use gen_rs::{Distribution,DynTrie,u01,normal,inference::ParticleSystem};
 use nalgebra::dvector;
 use rand::rngs::ThreadRng;
-// use serde_json;
 
 pub mod pointed_model;
 use pointed_model::types_2d::{Bounds,Point};

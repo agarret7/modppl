@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::cell::RefCell;
+use std::collections::{HashMap, hash_map};
 
 
 /// Enum representing possible parse variants for an address that contain some number of `/` separators.
@@ -45,8 +46,6 @@ pub fn normalize_addr<'a>(addr: &'a str) -> String {
         }
     }
 }
-
-use std::collections::{HashMap, hash_map};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct AddrMap(HashMap<String,AddrMap>);

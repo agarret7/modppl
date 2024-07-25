@@ -102,12 +102,12 @@ impl<V> Trie<V> {
         }
     }
 
-    pub fn witness(&mut self, addr: &str, value: V, weight: f64) { 
+    pub fn w_observe(&mut self, addr: &str, value: V, weight: f64) { 
         self.weight += weight;
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
                 if self.mapping.contains_key(addr) {
-                    panic!("witness: attempted to put into occupied address \"{addr}\"");
+                    panic!("w_observe: attempted to put into occupied address \"{addr}\"");
                 } else {
                     self.mapping.insert(addr.to_string(), Trie::leaf(value, weight));
                 }
@@ -116,7 +116,7 @@ impl<V> Trie<V> {
                 let submap = self.mapping
                     .entry(first.to_string())
                     .or_insert(Trie::new());
-                submap.witness(rest, value, weight)
+                submap.w_observe(rest, value, weight)
             }
         }
     }
@@ -168,7 +168,7 @@ impl<V> Trie<V> {
     pub fn merge(&mut self, other: Self) {
         for (addr, othersub) in other.into_iter() {
             if othersub.is_leaf() {
-                self.witness(&addr, othersub.value.unwrap(), othersub.weight);
+                self.w_observe(&addr, othersub.value.unwrap(), othersub.weight);
             } else {
                 match self.mapping.get_mut(&addr) {
                     Some(sub) => {

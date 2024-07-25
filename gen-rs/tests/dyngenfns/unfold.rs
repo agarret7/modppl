@@ -1,6 +1,6 @@
 use std::f64::consts::PI;
 
-use gen_rs::{DynGenFnHandler,DynGenFn,Unfold,uniform,normal,mvnormal};
+use gen_rs::{DynGenFnHandler,DynGenFn,DynUnfold,uniform,normal,mvnormal};
 use nalgebra::{dvector,dmatrix};
 
 use crate::pointed_model;
@@ -30,4 +30,4 @@ fn _spiral_kernel_func(g: &mut DynGenFnHandler<(i64,Point),Point>, args: (i64,Po
     return pol;
 }
 const spiral_kernel_func: DynGenFn<(i64,Point),Point> = DynGenFn { func: _spiral_kernel_func };
-pub const spiral_model: Unfold<Point> = Unfold { kernel: spiral_kernel_func };
+pub const spiral_model: DynUnfold<Point> = DynUnfold { kernel: spiral_kernel_func };
