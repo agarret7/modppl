@@ -1,8 +1,12 @@
 [package]
 name = "modppl-macros"
+description = "convenience macros for modeling with modppl."
 version = "0.1.0"
 edition = "2021"
+keywords = ["statistics", "ppl", "mcmc", "importance-sampling", "particle-filtering"]
+categories = ["science", "simulation"]
 license = "MIT"
+repository = "https://github.com/agarret7/modppl"
 
 [lib]
 proc-macro = true
