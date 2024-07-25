@@ -11,7 +11,7 @@ env:
 
 jobs:
   build_and_test:
-    name: gen-rs - latest
+    name: modppl - latest
     runs-on: ubuntu-latest
     strategy:
       matrix:

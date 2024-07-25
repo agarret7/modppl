@@ -1,0 +1,24 @@
+[package]
+name = "modppl"
+description = "a experimental library for probabilistic programming in Rust."
+version = "0.3.0"
+edition = "2021"
+keywords = ["statistics", "ppl", "mcmc", "importance-sampling", "particle-filtering"]
+categories = ["science", "simulation"]
+readme = "../README.md"
+license = "MIT"
+repository = "https://github.com/agarret7/modppl"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+modppl-macros = { path = "../modppl-macros" }
+approx = "0.5.1"
+compute = "0.2.3"
+nalgebra = { features = ["serde-serialize"], version = "0.32.2" }
+rand = "0.8.5"
+rand_distr = "0.4.3"
+regex = "1.9.1"
+serde = { version = "1.0.163", features = ["rc", "derive"] }
+serde_derive = "1.0.197"
+serde_json = "1.0.96"

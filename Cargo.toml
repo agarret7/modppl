@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "gen-rs",
-    "gen-rs-macros"
+    "modppl",
+    "modppl-macros"
 ]
