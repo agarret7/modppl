@@ -2,7 +2,6 @@ use modppl::prelude::*;
 
 mod pointed_model;
 mod dyngenfns;
-use dyngenfns::grass;
 
 
 pub fn _DynGenFn_prototype(state: &mut DynGenFnHandler<f64,f64>,noise: f64) -> f64 {
@@ -27,8 +26,6 @@ pub fn test_DynGenFn_prototype() {
         dbg!(trace.logjp);
         dbg!(weight);
     }
-
-    grass.simulate(());
 }
 
 
