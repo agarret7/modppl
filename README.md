@@ -4,27 +4,71 @@
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-modppl-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs" height="20">](https://docs.rs/modppl)
 [<img alt="status" src="https://img.shields.io/github/actions/workflow/status/agarret7/modppl/test.yml?branch=main&style=for-the-badge" height="20">](https://github.com/agarret7/modppl/actions?query=branch%3Amain)
 
-⚠ ️This is evolving software. The API may change.
+⚠ ️This is a research prototype, not intended for production use.
 
 # What is modppl?
 
-`modppl` is probabilistic programming written natively in Rust. Modularity is conferred through a trait interface that separates modeling and inference, called `GenFn`.
+`modppl` is probabilistic programming written natively in Rust. Modeling and inference are separated via a trait interface called `GenFn`, whose implementations can simulate, generate, update, and regenerate `Trace` data structures, supporting composable inference kernels.
 
 
-## Inference
+## Modeling & Inference
+
+Probabilistic programming differs from deep learning in that it emphasizes developing inference algorithms rather than training weights. Different languages make different trade-offs in the inference algorithms they support, and designing structures that accommodate the widest possible set of Markovian processes is ongoing research.
+
+Several inference procedures are supported:
 
 - Importance Sampling and Resampling
 - Proposal-based and Regenerative Metropolis-Hastings
-- Particle Filtering
+- Sequential Monte Carlo (SMC)
 
+ModPPL supports a compact, expressive, macro-based modeling DSL with the `dyngen!` macro that generates `Trace`s holding values of `Any` type at runtime. This includes support for `Unfold`, a sequential inference combinator. See [examples](https://github.com/agarret7/modppl/tree/main/modppl/tests/dyngenfns) for usage.
 
-## Dynamic Modeling
+A robust observation model: most points are explained by tight noise, but outliers are drawn from a wide distribution.
+```rust
+use modppl::prelude::*;
 
-- Dynamically-typed `DynGenFn` and effects-based `DynGenFnHandler`
-- `dyngen!` modeling language (sample with `%=`, trace with `/=`)
-- Dynamic Unfold Kernel
-- Check out some [examples](https://github.com/agarret7/modppl/tree/main/modppl/tests/dyngenfns)
+dyngen!(
+pub fn observe(mu: f64) -> f64 {
+    let is_outlier = bernoulli(0.1) %= "is_outlier";
+    let noise = if is_outlier { 5.0 } else { 0.5 };
+    normal(mu, noise) %= "y"
+});
+```
 
+Linear regression that traces each observation into a namespaced submodel via `/=`.
+```rust
+dyngen!(
+pub fn linear_model(xs: Vec<f64>) -> Vec<f64> {
+    let a = normal(0., 2.) %= "a";
+    let b = normal(0., 2.) %= "b";
+    xs.iter().enumerate().map(|(i, x)| {
+        observe(a * x + b) /= &format!("obs/{}", i)
+    }).collect()
+});
+```
+
+A drift proposal perturbs the regression coefficients, leaving everything else fixed.
+```rust
+dyngen!(
+pub fn drift_proposal(tr: Weak<DynTrace<Vec<f64>, Vec<f64>>>, drift: f64) {
+    let tr = tr.upgrade().unwrap();
+    normal(tr.data.read::<f64>("a"), drift) %= "a";
+    normal(tr.data.read::<f64>("b"), drift) %= "b";
+});
+```
+
+Composable inference alternating between drifting `a` and `b` and regenerating `outlier` labels.
+```rust
+let (mut trace, _) = linear_model.generate(xs.clone(), constraints);
+for _ in 0..1000 {
+    (trace, _) = mh(&linear_model, trace, &drift_proposal, 0.25);
+    for i in 0..xs.len() {
+        let mut mask = AddrMap::new();
+        mask.visit(&format!("obs/{}/is_outlier", i));
+        (trace, _) = regen_mh(&linear_model, trace, &mask);
+    }
+}
+```
 
 ## Gallery
 
