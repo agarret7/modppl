@@ -60,7 +60,13 @@ pub use modeling::dists::{
     geometric,
     poisson,
     gamma,
-    beta
+    beta,
+    inv_gamma,
+    binomial,
+    exponential,
+    laplace,
+    cauchy,
+    dirichlet
 };
 pub use modeling::dyngenfn::{DynTrie,DynTrace,DynGenFn,DynGenFnHandler};
 pub use modeling::dynunfold::{DynUnfold,DynParticles};

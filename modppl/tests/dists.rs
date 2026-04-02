@@ -3,7 +3,7 @@ use nalgebra::{dvector,dmatrix};
 
 use rand::rngs::ThreadRng;
 use approx;
-use modppl::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal, geometric, poisson, beta, gamma};
+use modppl::{Distribution, bernoulli, uniform, uniform_discrete, categorical, normal, mvnormal, geometric, poisson, beta, gamma, inv_gamma, binomial, exponential, laplace, cauchy, dirichlet};
 
 const LOGPDF_EPSILON: f64 = f32::EPSILON as f64;
 
@@ -209,4 +209,46 @@ pub fn test_gamma() {
     approx::assert_abs_diff_eq!(-1.414334369005868, gamma.logpdf(&1.7, (1.23, 1.46)), epsilon = LOGPDF_EPSILON);
     approx::assert_abs_diff_eq!(-3.4049256003700052, gamma.logpdf(&8.4, (4.5, 1.0)), epsilon = LOGPDF_EPSILON);
     approx::assert_abs_diff_eq!(-528.8122715889206, gamma.logpdf(&0.03, (50.0, 70.0)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_inv_gamma() {
+    approx::assert_abs_diff_eq!(-1.0191707469882739, inv_gamma.logpdf(&1.5, (2.0, 3.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(0.07944154167983569, inv_gamma.logpdf(&0.5, (3.0, 1.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-0.8734566196629605, inv_gamma.logpdf(&0.8, (5.0, 2.0)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_binomial() {
+    approx::assert_abs_diff_eq!(-2.143980062817407, binomial.logpdf(&3, (10, 0.5)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-1.7833747196936622, binomial.logpdf(&0, (5, 0.3)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-1.1157177565710488, binomial.logpdf(&5, (5, 0.8)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_exponential() {
+    approx::assert_abs_diff_eq!(-2.3068528194400547, exponential.logpdf(&1.5, 2.0), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-0.4013877113318902, exponential.logpdf(&0.5, 3.0), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-2.802585092994046, exponential.logpdf(&5.0, 0.1), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_laplace() {
+    approx::assert_abs_diff_eq!(-1.6931471805599453, laplace.logpdf(&1.0, (0.0, 1.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-1.8862943611198906, laplace.logpdf(&2.5, (1.5, 2.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-3.0986122886681098, laplace.logpdf(&-3.0, (0.0, 1.5)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_cauchy() {
+    approx::assert_abs_diff_eq!(-1.8378770664093453, cauchy.logpdf(&1.0, (0.0, 1.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-2.0610206177235553, cauchy.logpdf(&2.0, (1.0, 2.0)), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(-3.159632906391665, cauchy.logpdf(&0.5, (3.5, 1.5)), epsilon = LOGPDF_EPSILON);
+}
+
+#[test]
+pub fn test_dirichlet() {
+    approx::assert_abs_diff_eq!(1.5040773967762744, dirichlet.logpdf(&vec![0.2, 0.3, 0.5], vec![1.0, 2.0, 3.0]), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(0.4054651081084364, dirichlet.logpdf(&vec![0.5, 0.5], vec![2.0, 2.0]), epsilon = LOGPDF_EPSILON);
+    approx::assert_abs_diff_eq!(1.5609788413006192, dirichlet.logpdf(&vec![0.1, 0.6, 0.3], vec![0.5, 3.0, 1.5]), epsilon = LOGPDF_EPSILON);
 }
