@@ -13,7 +13,7 @@
 
 ## Modeling & Inference
 
-Probabilistic programming differs from deep learning in that it emphasizes developing inference algorithms rather than training weights. Different languages make different trade-offs in the inference algorithms they support, and designing structures that accommodate the widest possible set of Markovian processes is ongoing research.
+Probabilistic programming differs from deep learning in that it emphasizes developing inference algorithms rather than training weights. Different languages make different trade-offs in the inference algorithms they support, and designing structures that accommodate the widest possible set of probabilistic models is ongoing research.
 
 Several inference procedures are supported:
 
