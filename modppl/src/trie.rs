@@ -1,33 +1,34 @@
-use std::collections::{HashMap, hash_map};
-use crate::{SplitAddr::{self,Prefix,Term}, AddrMap};
-
+use crate::Real;
+use crate::{
+    AddrMap,
+    SplitAddr::{self, Prefix, Term},
+};
+use std::collections::{hash_map, HashMap};
 
 /// Weighted Digital Trie
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Trie<V> {
-    mapping: HashMap<String,Trie<V>>,
+    mapping: HashMap<String, Trie<V>>,
     value: Option<V>,
-    weight: f64
+    weight: Real,
 }
 
-
 impl<V> Trie<V> {
-
     /// Initialize an empty Trie.
     pub fn new() -> Self {
         Trie {
             mapping: HashMap::new(),
             value: None,
-            weight: 0.
+            weight: 0.,
         }
     }
 
     /// Initialize a Trie with an inner value and weight.
-    pub fn leaf(value: V, weight: f64) -> Self {
+    pub fn leaf(value: V, weight: Real) -> Self {
         Trie {
             mapping: HashMap::new(),
             value: Some(value),
-            weight: weight
+            weight: weight,
         }
     }
 
@@ -82,19 +83,15 @@ impl<V> Trie<V> {
     }
 
     /// Return the sum of the weight of all descendants.
-    pub fn weight(&self) -> f64 {
+    pub fn weight(&self) -> Real {
         self.weight
     }
 
     /// Return some reference to a descendant at `addr` if present, otherwise none.
     pub fn search(&self, addr: &str) -> Option<&Trie<V>> {
         match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.mapping.get(addr)
-            }
-            Prefix(first, rest) => {
-                self.mapping[first].search(rest)
-            }
+            Term(addr) => self.mapping.get(addr),
+            Prefix(first, rest) => self.mapping[first].search(rest),
         }
     }
 
@@ -105,33 +102,31 @@ impl<V> Trie<V> {
                 if self.mapping.contains_key(addr) {
                     panic!("observe: attempted to put into occupied address \"{addr}\"");
                 } else {
-                    self.mapping.insert(addr.to_string(), Trie::leaf(value, 0.0));
+                    self.mapping
+                        .insert(addr.to_string(), Trie::leaf(value, 0.0));
                 }
             }
             Prefix(first, rest) => {
-                let submap = self.mapping
-                    .entry(first.to_string())
-                    .or_insert(Trie::new());
+                let submap = self.mapping.entry(first.to_string()).or_insert(Trie::new());
                 submap.observe(rest, value)
             }
         }
     }
 
     /// Observe a weighted `value` at `addr`, summing the weight by `weight`. Panic if `addr` is occupied.
-    pub fn w_observe(&mut self, addr: &str, value: V, weight: f64) { 
+    pub fn w_observe(&mut self, addr: &str, value: V, weight: Real) {
         self.weight += weight;
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
                 if self.mapping.contains_key(addr) {
                     panic!("w_observe: attempted to put into occupied address \"{addr}\"");
                 } else {
-                    self.mapping.insert(addr.to_string(), Trie::leaf(value, weight));
+                    self.mapping
+                        .insert(addr.to_string(), Trie::leaf(value, weight));
                 }
             }
             Prefix(first, rest) => {
-                let submap = self.mapping
-                    .entry(first.to_string())
-                    .or_insert(Trie::new());
+                let submap = self.mapping.entry(first.to_string()).or_insert(Trie::new());
                 submap.w_observe(rest, value, weight)
             }
         }
@@ -149,9 +144,7 @@ impl<V> Trie<V> {
                 }
             }
             Prefix(first, rest) => {
-                let submap = self.mapping
-                    .entry(first.to_string())
-                    .or_insert(Trie::new());
+                let submap = self.mapping.entry(first.to_string()).or_insert(Trie::new());
                 submap.insert(rest, sub)
             }
         }
@@ -160,21 +153,17 @@ impl<V> Trie<V> {
     /// Return a descendant at `addr` if present (removing it), otherwise just return none.
     pub fn remove(&mut self, addr: &str) -> Option<Trie<V>> {
         if let Some(sub) = match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.mapping.remove(addr)
-            }
-            Prefix(first, rest) => {
-                match self.mapping.get_mut(first) {
-                    Some(node) => {
-                        let leaf = node.remove(rest);
-                        if node.is_empty() {
-                            self.remove(first);
-                        }
-                        leaf
+            Term(addr) => self.mapping.remove(addr),
+            Prefix(first, rest) => match self.mapping.get_mut(first) {
+                Some(node) => {
+                    let leaf = node.remove(rest);
+                    if node.is_empty() {
+                        self.remove(first);
                     }
-                    None => { None }
+                    leaf
                 }
-            }
+                None => None,
+            },
         } {
             self.weight -= sub.weight;
             Some(sub)
@@ -216,19 +205,18 @@ impl<V> Trie<V> {
 
     /// Collect the set of values identified by `mask` into a new `Trie`,
     /// leaving values in `self` that are in the complement of `mask`.
-    /// 
+    ///
     /// Return the new `self`, the collected value trie, and the weight of the collected value trie.
-    pub fn collect(
-        mut self: Self,
-        mask: &AddrMap
-    ) -> (Self,Self,f64) {
+    pub fn collect(mut self: Self, mask: &AddrMap) -> (Self, Self, Real) {
         let mut collected = Trie::new();
         if &self.schema() == mask {
             let weight = self.weight();
             return (collected, self, weight);
         } else if !mask.is_leaf() {
             for (addr, submask) in mask.iter() {
-                let Some(sub) = self.remove(addr) else { unreachable!() };
+                let Some(sub) = self.remove(addr) else {
+                    unreachable!()
+                };
                 if submask.is_leaf() {
                     collected.insert(addr, sub);
                 } else {
@@ -245,5 +233,4 @@ impl<V> Trie<V> {
         let weight = collected.weight();
         (self, collected, weight)
     }
-
 }

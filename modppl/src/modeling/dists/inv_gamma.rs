@@ -1,27 +1,24 @@
-use rand::rngs::ThreadRng;
+use super::log_gamma_fn;
 use super::Distribution;
-use compute::functions::gamma as gamma_f;
-use rand_distr::{
-    Distribution as _,
-    Gamma as GammaSampler
-};
-
+use crate::Real;
+use rand::rngs::ThreadRng;
+use rand_distr::{Distribution as _, Gamma as GammaSampler};
 
 /// Inverse Gamma distribution type
-pub struct InvGamma { }
+pub struct InvGamma {}
 
 /// Instantiation of the inverse gamma distribution
-pub const inv_gamma: InvGamma = InvGamma { };
+pub const inv_gamma: InvGamma = InvGamma {};
 
-impl Distribution<f64,(f64,f64)> for InvGamma {
-    fn logpdf(&self, x: &f64, params: (f64,f64)) -> f64 {
+impl Distribution<Real, (Real, Real)> for InvGamma {
+    fn logpdf(&self, x: &Real, params: (Real, Real)) -> Real {
         let (a, b) = params;
-        a*b.ln() - gamma_f(a).ln() - (a+1.)*x.ln() - b/x
+        a * b.ln() - log_gamma_fn(a) - (a + 1.) * x.ln() - b / x
     }
 
-    fn random(&self, rng: &mut ThreadRng, params: (f64,f64)) -> f64 {
+    fn random(&self, rng: &mut ThreadRng, params: (Real, Real)) -> Real {
         let (a, b) = params;
-        let gamma_sampler = GammaSampler::new(a, 1./b).ok().unwrap();
+        let gamma_sampler = GammaSampler::new(a, 1. / b).ok().unwrap();
         1. / gamma_sampler.sample(rng)
     }
 }
