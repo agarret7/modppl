@@ -11,6 +11,14 @@ repository = "https://github.com/agarret7/modppl"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["f64"]
+# Compute with 64-bit floats (default).
+f64 = []
+# Compute with 32-bit floats. Enable with `default-features = false`;
+# mutually exclusive with the `f64` feature.
+f32 = []
+
 [dependencies]
 modppl-macros = "0.1.0"
 approx = "0.5.1"

@@ -1,10 +1,9 @@
 use modppl::Trace;
 
+#[derive(Clone, Copy)]
+pub struct ParamStore {}
 
-#[derive(Clone,Copy)]
-pub struct ParamStore { }
-
-pub type HMMTrace = Trace<(i64, ParamStore),(Vec<Option<usize>>,Vec<Option<usize>>),Vec<usize>>;
+pub type HMMTrace = Trace<(i64, ParamStore), (Vec<Option<usize>>, Vec<Option<usize>>), Vec<usize>>;
 
 pub fn extend(trace: &mut HMMTrace, new_state: usize, new_observation: usize) -> () {
     trace.data.0.push(Some(new_state));

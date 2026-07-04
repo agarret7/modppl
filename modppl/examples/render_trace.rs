@@ -5,32 +5,32 @@ use rand::rngs::ThreadRng;
 
 #[derive(Clone, Debug, PartialEq)]
 struct Camera {
-    z: f64,
+    z: Real,
 }
 
-type Rgb = (f64, f64, f64);
-type Xy = [f64; 2];
+type Rgb = (Real, Real, Real);
+type Xy = [Real; 2];
 
 #[derive(Clone, Debug, PartialEq)]
 struct RGBDImage {
     width: usize,
     height: usize,
-    camera_z: f64,
+    camera_z: Real,
     cone: Cone,
     sphere: Sphere
 }
 
 #[derive(Clone, Debug, PartialEq)]
 struct Cone {
-    height: f64,
-    radius: f64,
+    height: Real,
+    radius: Real,
     rgb: Rgb,
     xy: Xy,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 struct Sphere {
-    radius: f64,
+    radius: Real,
     rgb: Rgb,
     xy: Xy,
 }
@@ -43,11 +43,11 @@ impl<T> Distribution<T, T> for PointMass
 where
     T: Clone + PartialEq,
 {
-    fn logpdf(&self, x: &T, value: T) -> f64 {
+    fn logpdf(&self, x: &T, value: T) -> Real {
         if *x == value {
             0.
         } else {
-            f64::NEG_INFINITY
+            Real::NEG_INFINITY
         }
     }
 
@@ -115,11 +115,11 @@ fn main() {
 
     println!("READ BACK SELECTED VALUES");
 
-    let cone_height: f64;
-    let cone_radius: f64;
+    let cone_height: Real;
+    let cone_radius: Real;
     let mut cone_rgb: Rgb;
     let mut cone_xy: Xy;
-    let sphere_radius: f64;
+    let sphere_radius: Real;
     let sphere_rgb: Rgb;
     let sphere_xy: Xy;
     let camera: Camera;

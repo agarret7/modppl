@@ -28,7 +28,7 @@ A robust observation model: most points are explained by tight noise, but outlie
 use modppl::prelude::*;
 
 dyngen!(
-pub fn observe(mu: f64) -> f64 {
+pub fn observe(mu: Real) -> Real {
     let is_outlier = bernoulli(0.1) %= "is_outlier";
     let noise = if is_outlier { 5.0 } else { 0.5 };
     normal(mu, noise) %= "y"
@@ -38,7 +38,7 @@ pub fn observe(mu: f64) -> f64 {
 Linear regression that traces each observation into a namespaced submodel via `/=`.
 ```rust
 dyngen!(
-pub fn linear_model(xs: Vec<f64>) -> Vec<f64> {
+pub fn linear_model(xs: Vec<Real>) -> Vec<Real> {
     let a = normal(0., 2.) %= "a";
     let b = normal(0., 2.) %= "b";
     xs.iter().enumerate().map(|(i, x)| {
@@ -50,10 +50,10 @@ pub fn linear_model(xs: Vec<f64>) -> Vec<f64> {
 A drift proposal perturbs the regression coefficients, leaving everything else fixed.
 ```rust
 dyngen!(
-pub fn drift_proposal(tr: Weak<DynTrace<Vec<f64>, Vec<f64>>>, drift: f64) {
+pub fn drift_proposal(tr: Weak<DynTrace<Vec<Real>, Vec<Real>>>, drift: Real) {
     let tr = tr.upgrade().unwrap();
-    normal(tr.data.read::<f64>("a"), drift) %= "a";
-    normal(tr.data.read::<f64>("b"), drift) %= "b";
+    normal(tr.data.read::<Real>("a"), drift) %= "a";
+    normal(tr.data.read::<Real>("b"), drift) %= "b";
 });
 ```
 

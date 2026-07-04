@@ -1,28 +1,31 @@
-use nalgebra::{DVector,DMatrix};
+use nalgebra::{DMatrix, DVector};
 use rand::rngs::ThreadRng;
 
-use super::{HMMTrace,ParamStore,extend};
-use modppl::{GenFn,ArgDiff,Distribution,categorical};
-
+use super::{extend, HMMTrace, ParamStore};
+use modppl::{categorical, ArgDiff, Distribution, GenFn, Real};
 
 pub struct HMMParams {
-    prior: DVector<f64>,
-    emission_matrix: DMatrix<f64>,
-    transition_matrix: DMatrix<f64>
+    prior: DVector<Real>,
+    emission_matrix: DMatrix<Real>,
+    transition_matrix: DMatrix<Real>,
 }
 
 impl HMMParams {
     pub fn new(
-        prior: DVector<f64>,
-        emission_matrix: DMatrix<f64>,
-        transition_matrix: DMatrix<f64>
+        prior: DVector<Real>,
+        emission_matrix: DMatrix<Real>,
+        transition_matrix: DMatrix<Real>,
     ) -> Self {
-        HMMParams { prior, emission_matrix, transition_matrix }
+        HMMParams {
+            prior,
+            emission_matrix,
+            transition_matrix,
+        }
     }
 }
 
 pub struct HMM {
-    params: HMMParams
+    params: HMMParams,
 }
 
 impl HMM {
@@ -30,10 +33,22 @@ impl HMM {
         HMM { params }
     }
 
-    pub fn kernel(&self, trace: &mut HMMTrace, state_probs: Vec<f64>, new_observation: usize) -> f64 {
+    pub fn kernel(
+        &self,
+        trace: &mut HMMTrace,
+        state_probs: Vec<Real>,
+        new_observation: usize,
+    ) -> Real {
         let mut rng = ThreadRng::default();
         let new_state = categorical.random(&mut rng, state_probs.clone()) as usize;
-        let obs_probs = self.params.emission_matrix.column(new_state).transpose().data.as_vec().to_vec();
+        let obs_probs = self
+            .params
+            .emission_matrix
+            .column(new_state)
+            .transpose()
+            .data
+            .as_vec()
+            .to_vec();
         extend(trace, new_state, new_observation);
         let weight = categorical.logpdf(&(new_observation as i64), obs_probs);
         trace.logjp += weight;
@@ -41,13 +56,16 @@ impl HMM {
     }
 }
 
-impl GenFn<(i64,ParamStore),(Vec<Option<usize>>,Vec<Option<usize>>),Vec<usize>> for HMM {
-
+impl GenFn<(i64, ParamStore), (Vec<Option<usize>>, Vec<Option<usize>>), Vec<usize>> for HMM {
     fn simulate(&self, _: (i64, ParamStore)) -> HMMTrace {
         panic!("not implemented");
     }
 
-    fn generate(&self, args: (i64, ParamStore), constraints: (Vec<Option<usize>>,Vec<Option<usize>>)) -> (HMMTrace, f64) {
+    fn generate(
+        &self,
+        args: (i64, ParamStore),
+        constraints: (Vec<Option<usize>>, Vec<Option<usize>>),
+    ) -> (HMMTrace, Real) {
         let (t, _) = args;
         if t != 1 {
             panic!("only expect generate to be called to initialize the state (T = 1)");
@@ -59,23 +77,31 @@ impl GenFn<(i64,ParamStore),(Vec<Option<usize>>,Vec<Option<usize>>),Vec<usize>> 
         (trace, weight)
     }
 
-    fn update(&self, mut trace: HMMTrace, _: (i64, ParamStore), diff: modppl::ArgDiff, constraints: (Vec<Option<usize>>,Vec<Option<usize>>))
-        -> (HMMTrace, (Vec<Option<usize>>, Vec<Option<usize>>), f64)
-    {
+    fn update(
+        &self,
+        mut trace: HMMTrace,
+        _: (i64, ParamStore),
+        diff: modppl::ArgDiff,
+        constraints: (Vec<Option<usize>>, Vec<Option<usize>>),
+    ) -> (HMMTrace, (Vec<Option<usize>>, Vec<Option<usize>>), Real) {
         match diff {
             ArgDiff::Extend => {
                 let new_observation = constraints.1.last().unwrap().unwrap();
                 let prev_state = trace.data.0.last().unwrap().unwrap();
-                let state_probs = self.params.transition_matrix.column(prev_state)
+                let state_probs = self
+                    .params
+                    .transition_matrix
+                    .column(prev_state)
                     .transpose()
                     .data
                     .as_vec()
                     .to_vec();
                 let weight = self.kernel(&mut trace, state_probs, new_observation);
                 (trace, (vec![], vec![]), weight)
-            },
-            _ => { panic!("Can't handle GF change type: {:?}", diff) },
+            }
+            _ => {
+                panic!("Can't handle GF change type: {:?}", diff)
+            }
         }
     }
-
 }

@@ -1,18 +1,16 @@
+use super::types_2d::{uniform_2d, Bounds, Point};
+use modppl::{mvnormal, ArgDiff, Distribution, GenFn, Real, Trace};
 use nalgebra::DMatrix;
-use modppl::{Distribution, mvnormal, Trace, GenFn, ArgDiff};
-use super::types_2d::{Point,Bounds,uniform_2d};
 use rand::rngs::ThreadRng;
 
-
 pub struct PointedModel {
-    pub obs_cov: DMatrix<f64>
+    pub obs_cov: DMatrix<Real>,
 }
 
-pub type PointedBuffer = (Option<Point>,Option<Point>);
-pub type PointedTrace = Trace<Bounds,PointedBuffer,Point>;
+pub type PointedBuffer = (Option<Point>, Option<Point>);
+pub type PointedTrace = Trace<Bounds, PointedBuffer, Point>;
 
-impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
-
+impl GenFn<Bounds, PointedBuffer, Point> for PointedModel {
     fn simulate(&self, bounds: Bounds) -> PointedTrace {
         let mut rng = ThreadRng::default();
         let mut logjp = 0.;
@@ -23,7 +21,7 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
         PointedTrace::new(bounds, (Some(latent), Some(obs.clone())), obs, logjp)
     }
 
-    fn generate(&self, bounds: Bounds, constraints: PointedBuffer) -> (PointedTrace, f64) {
+    fn generate(&self, bounds: Bounds, constraints: PointedBuffer) -> (PointedTrace, Real) {
         let mut rng = ThreadRng::default();
         let mut logjp = 0.;
         let mut weight = 0.;
@@ -49,24 +47,36 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
         // manual obs branch
         let obs_choice = match constraints.1 {
             Some(constrained_obs) => {
-                let new_weight = mvnormal.logpdf(&constrained_obs, (latent_choice, self.obs_cov.clone()));
+                let new_weight =
+                    mvnormal.logpdf(&constrained_obs, (latent_choice, self.obs_cov.clone()));
                 weight += new_weight;
                 logjp += new_weight;
                 constrained_obs
             }
             None => {
-                let obs_choice = mvnormal.random(&mut rng, (latent_choice.clone(), self.obs_cov.clone()));
-                let new_weight = mvnormal.logpdf(&obs_choice, (latent_choice, self.obs_cov.clone()));
+                let obs_choice =
+                    mvnormal.random(&mut rng, (latent_choice.clone(), self.obs_cov.clone()));
+                let new_weight =
+                    mvnormal.logpdf(&obs_choice, (latent_choice, self.obs_cov.clone()));
                 logjp += new_weight;
                 obs_choice
             }
         };
         choices.1 = Some(obs_choice.clone());
 
-        (PointedTrace::new(bounds, choices, obs_choice, logjp), weight)
+        (
+            PointedTrace::new(bounds, choices, obs_choice, logjp),
+            weight,
+        )
     }
 
-    fn update(&self, trace: PointedTrace, args: Bounds, diff: ArgDiff, constraints: PointedBuffer) -> (PointedTrace, PointedBuffer, f64) {
+    fn update(
+        &self,
+        trace: PointedTrace,
+        args: Bounds,
+        diff: ArgDiff,
+        constraints: PointedBuffer,
+    ) -> (PointedTrace, PointedBuffer, Real) {
         match diff {
             ArgDiff::NoChange => {
                 let prev_choices = trace.data;
@@ -84,7 +94,10 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
                     new_logjp += uniform_2d.logpdf(&latent_constraint, bounds);
 
                     visited_obs = true;
-                    new_logjp -= mvnormal.logpdf(&prev_choices.1.clone().unwrap(), (prev_choices.0.clone().unwrap(), self.obs_cov.clone()));
+                    new_logjp -= mvnormal.logpdf(
+                        &prev_choices.1.clone().unwrap(),
+                        (prev_choices.0.clone().unwrap(), self.obs_cov.clone()),
+                    );
                 }
 
                 let mut obs_choice = prev_choices.1.clone();
@@ -92,17 +105,36 @@ impl GenFn<Bounds,PointedBuffer,Point> for PointedModel {
                     discard.1 = obs_choice;
                     obs_choice = Some(obs_constraint);
                     if !visited_obs {
-                        new_logjp -= mvnormal.logpdf(&prev_choices.1.unwrap(), (prev_choices.0.clone().unwrap(), self.obs_cov.clone()));
+                        new_logjp -= mvnormal.logpdf(
+                            &prev_choices.1.unwrap(),
+                            (prev_choices.0.clone().unwrap(), self.obs_cov.clone()),
+                        );
                     }
-                    new_logjp += mvnormal.logpdf(&obs_choice.clone().unwrap(), (latent_choice.clone().unwrap(), self.obs_cov.clone()));
+                    new_logjp += mvnormal.logpdf(
+                        &obs_choice.clone().unwrap(),
+                        (latent_choice.clone().unwrap(), self.obs_cov.clone()),
+                    );
                 } else if visited_obs {
-                    new_logjp += mvnormal.logpdf(&obs_choice.clone().unwrap(), (latent_choice.clone().unwrap(), self.obs_cov.clone()));
+                    new_logjp += mvnormal.logpdf(
+                        &obs_choice.clone().unwrap(),
+                        (latent_choice.clone().unwrap(), self.obs_cov.clone()),
+                    );
                 }
 
-                (PointedTrace::new(args, (latent_choice, obs_choice.clone()), obs_choice.unwrap(), new_logjp), discard, new_logjp - trace.logjp)
-            },
-            _ => { panic!("Can't handle GF change type: {:?}", diff) },
+                (
+                    PointedTrace::new(
+                        args,
+                        (latent_choice, obs_choice.clone()),
+                        obs_choice.unwrap(),
+                        new_logjp,
+                    ),
+                    discard,
+                    new_logjp - trace.logjp,
+                )
+            }
+            _ => {
+                panic!("Can't handle GF change type: {:?}", diff)
+            }
         }
     }
-
 }

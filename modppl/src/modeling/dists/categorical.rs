@@ -1,33 +1,42 @@
-use rand::rngs::ThreadRng;
+use super::{u01, Distribution};
+use crate::Real;
 use approx;
-use super::{Distribution,u01};
-
+use rand::rngs::ThreadRng;
 
 /// Categorical distribution type
-pub struct Categorical { }
+pub struct Categorical {}
 
 /// Instantiation of the categorical distribution
-pub const categorical: Categorical = Categorical { };
+pub const categorical: Categorical = Categorical {};
 
-impl Distribution<i64,Vec<f64>> for Categorical {
-    fn logpdf(&self, x: &i64, probs: Vec<f64>) -> f64 {
-        approx::assert_abs_diff_eq!(probs.iter().sum::<f64>(), 1.0, epsilon = 1e-8);
+impl Distribution<i64, Vec<Real>> for Categorical {
+    fn logpdf(&self, x: &i64, probs: Vec<Real>) -> Real {
+        approx::assert_abs_diff_eq!(
+            probs.iter().sum::<Real>(),
+            1.0,
+            epsilon = Real::EPSILON.sqrt()
+        );
         return if *x < probs.len() as i64 {
             probs[*x as usize].ln()
         } else {
-            f64::NEG_INFINITY
-        }
+            Real::NEG_INFINITY
+        };
     }
 
-    fn random(&self, rng: &mut ThreadRng, probs: Vec<f64>) -> i64 {
-        approx::assert_abs_diff_eq!(probs.iter().sum::<f64>(), 1.0, epsilon = 1e-8);
+    fn random(&self, rng: &mut ThreadRng, probs: Vec<Real>) -> i64 {
+        approx::assert_abs_diff_eq!(
+            probs.iter().sum::<Real>(),
+            1.0,
+            epsilon = Real::EPSILON.sqrt()
+        );
         let u = u01(rng);
         let mut t = 0.;
-        let mut x: i64 = 0;
-        while t < u {
-            t += probs[x as usize];
-            x += 1;
+        for (x, p) in probs.iter().enumerate() {
+            t += *p;
+            if u <= t {
+                return x as i64;
+            }
         }
-        return x - 1;
+        (probs.len() - 1) as i64
     }
 }

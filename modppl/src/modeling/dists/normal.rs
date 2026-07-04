@@ -1,27 +1,29 @@
+use super::{u01, Distribution};
+use crate::real::consts::PI;
+use crate::Real;
 use rand::rngs::ThreadRng;
-use super::{Distribution,u01};
-use std::f64::consts::PI;
-
 
 /// Gaussian distribution type
-pub struct Normal { }
+pub struct Normal {}
 
 /// Instantiation of the Gaussian distribution
-pub const normal: Normal = Normal { };
+pub const normal: Normal = Normal {};
 
-impl Distribution<f64,(f64,f64)> for Normal {
-    fn logpdf(&self, x: &f64, params: (f64,f64)) -> f64 {
+impl Distribution<Real, (Real, Real)> for Normal {
+    fn logpdf(&self, x: &Real, params: (Real, Real)) -> Real {
         let (mu, std) = params;
         let z = (x - mu) / std;
-        -(z.abs().powf(2.) + (2.*PI).ln())/2. - std.ln()
+        -(z.abs().powf(2.) + (2. * PI).ln()) / 2. - std.ln()
     }
 
-    fn random(&self, rng: &mut ThreadRng, params: (f64,f64)) -> f64 {
+    fn random(&self, rng: &mut ThreadRng, params: (Real, Real)) -> Real {
         let (mu, std) = params;
-        let u: f64 = u01(rng) * 2. - 1.;
-        let v: f64 = u01(rng) * 2. - 1.;
-        let r: f64 = u * u + v * v;
-        if r == 0. || r > 1. { return self.random(rng, params); }
+        let u: Real = u01(rng) * 2. - 1.;
+        let v: Real = u01(rng) * 2. - 1.;
+        let r: Real = u * u + v * v;
+        if r == 0. || r > 1. {
+            return self.random(rng, params);
+        }
         let c = (-2. * r.ln() / r).sqrt();
         return u * c * std + mu;
     }

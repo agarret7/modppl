@@ -1,18 +1,17 @@
 use regex::Regex;
 use std::cell::RefCell;
-use std::collections::{HashMap, hash_map};
-
+use std::collections::{hash_map, HashMap};
 
 /// Enum representing possible parse variants for an address that contain some number of `/` separators.
-#[derive(Debug,PartialEq,Eq,Hash)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum SplitAddr<'a> {
     /// Resultant type from a parse of `(addr)`.
     Term(&'a str),
 
     /// Resultant type from a parse of `first / (addr)`.
-    Prefix(&'a str, &'a str)
+    Prefix(&'a str, &'a str),
 }
-use SplitAddr::{Prefix,Term};
+use SplitAddr::{Prefix, Term};
 
 thread_local!(
     /// Regex spec for address parsing.
@@ -23,9 +22,7 @@ impl<'a> SplitAddr<'a> {
     /// Parse a string address containing some number of `/` separators into a `SplitAddr` variant.
     pub fn from_addr(addr: &'a str) -> Self {
         match ADDR_RE.with(|re| re.borrow().captures(&addr)) {
-            None => {
-                Term(addr.trim_start().trim_end())
-            },
+            None => Term(addr.trim_start().trim_end()),
             Some(caps) => {
                 let first: &str = caps.get(1).unwrap().into();
                 let rest: &str = caps.get(2).unwrap().into();
@@ -38,19 +35,16 @@ impl<'a> SplitAddr<'a> {
 /// Normalize whitespace between `/` separators in an `addr` to contain one space to the left and right of each separator.
 pub fn normalize_addr<'a>(addr: &'a str) -> String {
     match SplitAddr::from_addr(addr) {
-        Term(s) => {
-            s.to_string()
-        }
+        Term(s) => s.to_string(),
         Prefix(first, rest) => {
             format!("{} / {}", first, normalize_addr(rest))
         }
     }
 }
 
-
 /// A map of strings representing a mask.
 #[derive(Debug, Clone, PartialEq)]
-pub struct AddrMap(HashMap<String,AddrMap>);
+pub struct AddrMap(HashMap<String, AddrMap>);
 
 impl AddrMap {
     /// Construct an empty `AddrMap`.
@@ -66,17 +60,11 @@ impl AddrMap {
     /// Return some reference to a descendant at `addr` if present, otherwise none.
     pub fn search(&self, addr: &str) -> Option<&AddrMap> {
         match SplitAddr::from_addr(addr) {
-            Term(addr) => {
-                self.0.get(addr)
-            }
-            Prefix(first, rest) => {
-                match self.0.get(first) {
-                    Some(submask) => {
-                        submask.search(rest)
-                    }
-                    None => { None }
-                }
-            }
+            Term(addr) => self.0.get(addr),
+            Prefix(first, rest) => match self.0.get(first) {
+                Some(submask) => submask.search(rest),
+                None => None,
+            },
         }
     }
 
@@ -105,14 +93,10 @@ impl AddrMap {
     pub fn visit(&mut self, addr: &str) {
         match SplitAddr::from_addr(addr) {
             Term(addr) => {
-                self.0
-                    .entry(addr.to_string())
-                    .or_insert(AddrMap::new());
+                self.0.entry(addr.to_string()).or_insert(AddrMap::new());
             }
             Prefix(first, rest) => {
-                let submask = self.0
-                    .entry(first.to_string())
-                    .or_insert(AddrMap::new());
+                let submask = self.0.entry(first.to_string()).or_insert(AddrMap::new());
                 submask.visit(rest);
             }
         }
@@ -158,12 +142,19 @@ fn test_split_addr() {
 
     let hard_addr = " 1/ 21f23/432 / 132  /   (  y?A1 , grexxy )   ";
     let mut key = SplitAddr::from_addr(hard_addr);
-    assert_eq!(key, Prefix("1", " 21f23/432 / 132  /   (  y?A1 , grexxy )   "));
+    assert_eq!(
+        key,
+        Prefix("1", " 21f23/432 / 132  /   (  y?A1 , grexxy )   ")
+    );
 
     while key != Term("(  y?A1 , grexxy )") {
         match key {
-            Prefix(_, b) => { key = SplitAddr::from_addr(b); },
-            t => { panic!("expected term = Term(\"(  y?A1 , grexxy )\"), got {:?}", t) }
+            Prefix(_, b) => {
+                key = SplitAddr::from_addr(b);
+            }
+            t => {
+                panic!("expected term = Term(\"(  y?A1 , grexxy )\"), got {:?}", t)
+            }
         }
     }
 

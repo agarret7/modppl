@@ -1,6 +1,5 @@
 use modppl::Trie;
 
-
 // inserting a trie into a root and then removing it should yield the previous tries
 #[test]
 pub fn test_add_remove_inverse() {
@@ -9,7 +8,7 @@ pub fn test_add_remove_inverse() {
     let mut subin = Trie::<i32>::new();
     subin.w_observe("mother", 1, 2.);
     subin.w_observe("world", 2, 1.14);
-    
+
     let root_before = root.clone();
 
     root.insert("hello", subin.clone());
@@ -26,11 +25,15 @@ pub fn test_search_w_observed_value() {
 
     root.w_observe("test", 2, -3.4);
     let leaf = Trie::leaf(2, -3.4);
-    let found = root.search("test").expect("oberved weighted value not found.");
+    let found = root
+        .search("test")
+        .expect("oberved weighted value not found.");
     assert_eq!(*found, leaf);
 
     root.w_observe("test/deep/nested", 5, -1.2);
-    let found = root.search("test/deep/nested").expect("observed weighted value not found.");
+    let found = root
+        .search("test/deep/nested")
+        .expect("observed weighted value not found.");
     let leaf = Trie::leaf(5, -1.2);
     assert_eq!(*found, leaf);
 }
@@ -49,7 +52,9 @@ pub fn test_search_inserted_subtrie() {
     assert_eq!(*found, subin);
 
     root.insert("great/grand/child", subin.clone());
-    let found = root.search("great/grand/child").expect("inserted subtrie not found.");
+    let found = root
+        .search("great/grand/child")
+        .expect("inserted subtrie not found.");
     assert_eq!(*found, subin);
 }
 
@@ -59,7 +64,7 @@ pub fn test_search_inserted_subtrie() {
 pub fn test_weighted_observation() {
     let mut root = Trie::<i32>::new();
     root.w_observe("test", 0, -1.3);
-    let w_before= root.weight();
+    let w_before = root.weight();
     let w_sub = -5.3;
     root.w_observe("test/deep/nested", 3, w_sub);
     let w_after = root.weight();
@@ -84,9 +89,9 @@ pub fn test_weighted_subtrie() {
 #[test]
 #[should_panic]
 pub fn test_insert_into_occupied_panic() {
-    let mut root = Trie::<(i32,u8)>::new();
+    let mut root = Trie::<(i32, u8)>::new();
     root.w_observe("some/address", (-10431451, 200), -0.5);
-    root.w_observe("some/address", (-1,0), 0.);
+    root.w_observe("some/address", (-1, 0), 0.);
 }
 
 // unwrapping the inner value from an empty trie should panic
@@ -132,7 +137,7 @@ pub fn test_trie_extended_example() {
     hw_dup.w_observe("player", 1.0, 1.5);
     assert_ne!(helloworld, hw_dup);
     let v = hw_dup.take_inner().unwrap();
-    hw_dup.replace_inner(v+0.1_f32);
+    hw_dup.replace_inner(v + 0.1_f32);
     assert_eq!(helloworld, hw_dup);
 
     let l = helloworld.search("player").unwrap();

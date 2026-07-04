@@ -1,7 +1,7 @@
 mod forward;
-mod trace;
 mod model;
+mod trace;
 
 pub use forward::hmm_forward_alg;
-pub use trace::*;
 pub use model::{HMMParams, HMM};
+pub use trace::*;

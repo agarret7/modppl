@@ -1,17 +1,22 @@
-use std::sync::{Arc,Weak};
+use crate::Real;
+use crate::{AddrMap, ArgDiff, GenFn, Trace};
 use rand::{distributions::Uniform, rngs::ThreadRng, Rng};
-use crate::{Trace,GenFn,AddrMap,ArgDiff};
-
+use std::sync::{Arc, Weak};
 
 /// Perform a Metropolis-Hastings update that proposes new values for some subset of random choices in the given `trace` under the `model` using the given `proposal` generative function.
-/// 
+///
 /// The `proposal` shares the same trace data structure as the `model`, but must accept a `Weak` reference to the `trace` as its first argument and return an empty tuple `()`.
-pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clone + 'static,ProposalArgs: Clone>(
-    model: &impl GenFn<Args,Data,Ret>,
-    trace: Trace<Args,Data,Ret>,
-    proposal: &impl GenFn<(Weak<Trace<Args,Data,Ret>>,ProposalArgs),Data,()>,
-    proposal_args: ProposalArgs
-) -> (Trace<Args,Data,Ret>, bool) {
+pub fn metropolis_hastings<
+    Args: Clone + 'static,
+    Data: Clone + 'static,
+    Ret: Clone + 'static,
+    ProposalArgs: Clone,
+>(
+    model: &impl GenFn<Args, Data, Ret>,
+    trace: Trace<Args, Data, Ret>,
+    proposal: &impl GenFn<(Weak<Trace<Args, Data, Ret>>, ProposalArgs), Data, ()>,
+    proposal_args: ProposalArgs,
+) -> (Trace<Args, Data, Ret>, bool) {
     let prev_trace = trace.clone();
 
     let trace = Arc::new(trace);
@@ -20,7 +25,8 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clon
     let trace = Arc::into_inner(trace).unwrap();
 
     let args = trace.args.clone();
-    let (trace, discard, weight) = model.update(trace, args.clone(), ArgDiff::NoChange, fwd_choices);
+    let (trace, discard, weight) =
+        model.update(trace, args.clone(), ArgDiff::NoChange, fwd_choices);
 
     let trace = Arc::new(trace);
     let proposal_args_backward = (Arc::downgrade(&trace), proposal_args);
@@ -32,7 +38,11 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clon
     // dbg!(bwd_weight);
 
     let alpha = weight - fwd_weight + bwd_weight;
-    if ThreadRng::default().sample(Uniform::new(0_f64, 1_f64)).ln() < alpha {
+    if ThreadRng::default()
+        .sample(Uniform::<Real>::new(0., 1.))
+        .ln()
+        < alpha
+    {
         (trace, true)
     } else {
         (prev_trace, false)
@@ -40,26 +50,38 @@ pub fn metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clon
 }
 
 /// Alias for `metropolis_hastings`.
-pub fn mh<Args: Clone + 'static,Data: Clone + 'static,Ret: Clone + 'static,ProposalArgs: Clone>(
-    model: &impl GenFn<Args,Data,Ret>,
-    trace: Trace<Args,Data,Ret>,
-    proposal: &impl GenFn<(Weak<Trace<Args,Data,Ret>>,ProposalArgs),Data,()>,
-    proposal_args: ProposalArgs
-) -> (Trace<Args,Data,Ret>, bool) {
+pub fn mh<
+    Args: Clone + 'static,
+    Data: Clone + 'static,
+    Ret: Clone + 'static,
+    ProposalArgs: Clone,
+>(
+    model: &impl GenFn<Args, Data, Ret>,
+    trace: Trace<Args, Data, Ret>,
+    proposal: &impl GenFn<(Weak<Trace<Args, Data, Ret>>, ProposalArgs), Data, ()>,
+    proposal_args: ProposalArgs,
+) -> (Trace<Args, Data, Ret>, bool) {
     metropolis_hastings(model, trace, proposal, proposal_args)
 }
 
-
 /// Perform a Metropolis-Hastings update that proposes new values for some `mask` of random choices in the given `trace` under the `model` using the internal proposal.
-pub fn regenerative_metropolis_hastings<Args: Clone + 'static,Data: Clone + 'static,Ret: Clone + 'static>(
-    model: &impl GenFn<Args,Data,Ret>,
-    trace: Trace<Args,Data,Ret>,
+pub fn regenerative_metropolis_hastings<
+    Args: Clone + 'static,
+    Data: Clone + 'static,
+    Ret: Clone + 'static,
+>(
+    model: &impl GenFn<Args, Data, Ret>,
+    trace: Trace<Args, Data, Ret>,
     mask: &AddrMap,
-) -> (Trace<Args,Data,Ret>, bool) {
+) -> (Trace<Args, Data, Ret>, bool) {
     let prev_trace = trace.clone();
     let args = trace.args.clone();
     let (trace, weight) = model.regenerate(trace, args, ArgDiff::NoChange, mask);
-    if ThreadRng::default().sample(Uniform::new(0_f64, 1_f64)).ln() < weight {
+    if ThreadRng::default()
+        .sample(Uniform::<Real>::new(0., 1.))
+        .ln()
+        < weight
+    {
         (trace, true)
     } else {
         (prev_trace, false)
@@ -67,10 +89,10 @@ pub fn regenerative_metropolis_hastings<Args: Clone + 'static,Data: Clone + 'sta
 }
 
 /// Alias for `regenerative_metropolis_hastings`.
-pub fn regen_mh<Args: Clone + 'static,Data: Clone + 'static,Ret: Clone + 'static>(
-    model: &impl GenFn<Args,Data,Ret>,
-    trace: Trace<Args,Data,Ret>,
+pub fn regen_mh<Args: Clone + 'static, Data: Clone + 'static, Ret: Clone + 'static>(
+    model: &impl GenFn<Args, Data, Ret>,
+    trace: Trace<Args, Data, Ret>,
     mask: &AddrMap,
-) -> (Trace<Args,Data,Ret>, bool) {
+) -> (Trace<Args, Data, Ret>, bool) {
     regenerative_metropolis_hastings(model, trace, mask)
 }
