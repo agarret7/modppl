@@ -68,7 +68,14 @@ pub use modeling::dists::{
     cauchy,
     dirichlet
 };
-pub use modeling::dyngenfn::{DynTrie,DynTrace,DynGenFn,DynGenFnHandler};
+pub use modeling::dyngenfn::{DynGenFn,DynGenFnHandler};
+pub use modeling::dyntrie::{
+    DynTrie,DynTrace,DynAutoCast,DynValueFormatter,DynTracePrintOptions,
+    dyn_value_to_string,dyn_value_to_string_with,dyn_display_formatter,dyn_debug_formatter,
+    dyntrie_to_string,dyntrie_to_string_with,dyntrie_to_string_with_options,
+    dyntrace_to_string,dyntrace_to_string_with,dyntrace_to_string_with_options,
+    print_dyntrace,print_dyntrace_with,print_dyntrace_with_options,
+};
 pub use modeling::dynunfold::{DynUnfold,DynParticles};
 
 // inference libs

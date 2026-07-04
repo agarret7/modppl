@@ -1,39 +1,9 @@
 use std::sync::Arc;
-use std::any::Any;
 use rand::rngs::ThreadRng;
 use crate::AddrMap;
 use crate::modeling::dists::Distribution;
+use crate::modeling::dyntrie::{DynTrie,DynTrace};
 use crate::{Trie,GenFn,ArgDiff,Trace};
-
-
-///
-pub type DynTrie = Trie<Arc<dyn Any + Send + Sync>>;
-
-///
-pub type DynTrace<Args,Ret> = Trace<Args,DynTrie,Ret>;
-
-impl DynTrie {
-    /// Cast the inner `dyn Any` at `addr` into type `V` at runtime.
-    pub fn read<V: 'static + Clone>(&self, addr: &str) -> V {
-        match self.search(addr) {
-            Some(v) => {
-                let v_typed = v
-                    .ref_inner()
-                    .unwrap()
-                    .downcast_ref::<V>();
-                match v_typed {
-                    Some(v) => { v.clone() }
-                    None => {
-                        panic!("read: failed when downcasting type at address \"{}\"", addr);
-                    }
-                }
-            }
-            None => {
-                panic!("read: failed when searching empty address \"{}\"", addr);
-            }
-        }
-    }
-}
 
 /// Incremental computational state of a `trace` during the execution of the different `GenFn` methods with a `DynGenFn`.
 pub enum DynGenFnHandler<'a,A,T> {
