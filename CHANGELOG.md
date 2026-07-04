@@ -2,6 +2,23 @@
 
 Changes to `modppl` starting with `v0.3.0` are documented here.
 
+## [0.3.1]
+
+### Added
+
+- `dyntrie` module: pretty-printing utilities for `DynTrace`/`DynTrie`
+  - `dyn_display_formatter` / `dyn_debug_formatter` to register per-type printers
+  - `dyntrie_to_string` / `dyntrace_to_string` (and `*_with` / `*_with_options` variants) to build readable tree representations, recursing into nested sub-generative-function choices
+  - `print_dyntrace` convenience wrappers
+  - `DynTrie::auto` (an unsafe autocast feature) is supported for `[f32; N]` / `[f64; N]` arrays of any length, in addition to the existing tuple support
+  - `render_trace` example demonstrating `simulate`/`generate`, formatter registration, and typed reads
+- `f32`/`f64` precision feature: a `Real` type alias (`modppl::real::Real`, re-exported at the crate root) that resolves to `f64` by default, or `f32` when built with `default-features = false, features = ["f32"]`. All public APIs that previously hardcoded `f64` (`Trace::logjp`, `GenFn` methods, `Trie` weights, distributions, inference) now use `Real`.
+
+### Modified
+
+- `DynTrie`/`DynTrace` moved out of `dyngenfn` into the new `dyntrie` module
+- Crate-wide `rustfmt`
+
 ## [0.3.0]
 
 ### Modified
